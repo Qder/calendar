@@ -8,6 +8,12 @@ use tauri_plugin_autostart::MacosLauncher;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+      if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.set_focus();
+      }
+    }))
     .plugin(tauri_plugin_notification::init())
     .plugin(tauri_plugin_autostart::init(
       MacosLauncher::LaunchAgent,
@@ -64,7 +70,7 @@ pub fn run() {
     .on_window_event(|window, event| {
       if let WindowEvent::CloseRequested { api, .. } = event {
         // Closing the window hides to tray; process stays for setTimeout scheduler.
-        // Killing the process in Task Manager is out of scope for this phase.
+        // Killing the process in Task Manager is out of scope.
         api.prevent_close();
         let _ = window.hide();
       }

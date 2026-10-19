@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { getDeveloperMode } from '@/db/repos/settings'
+import BackupView from '@/views/BackupView.vue'
 import CourseImportView from '@/views/CourseImportView.vue'
 import DebugNotificationView from '@/views/DebugNotificationView.vue'
 import EventEditView from '@/views/EventEditView.vue'
@@ -46,11 +48,24 @@ const router = createRouter({
       component: SettingsView,
     },
     {
+      path: '/backup',
+      name: 'backup',
+      component: BackupView,
+    },
+    {
       path: '/debug/notifications',
       name: 'debug-notifications',
       component: DebugNotificationView,
+      meta: { requiresDeveloper: true },
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresDeveloper) return true
+  const on = await getDeveloperMode()
+  if (on) return true
+  return { name: 'settings' }
 })
 
 export default router

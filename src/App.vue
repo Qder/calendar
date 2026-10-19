@@ -35,6 +35,7 @@
           :to="{ name: 'settings' }"
         />
         <v-btn
+          v-if="settings.developerMode"
           icon="mdi-bug"
           variant="text"
           aria-label="通知调试"
@@ -49,5 +50,12 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
+
 // Schedule resume hooks are wired from main.ts (visibility/focus → rebuildAll).
+const settings = useSettingsStore()
+onMounted(() => {
+  void settings.load()
+})
 </script>

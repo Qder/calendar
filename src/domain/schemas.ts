@@ -59,6 +59,10 @@ export type SettingsRow = z.infer<typeof SettingsSchema>
 export const DEFAULT_REMIND_TIME_KEY = 'defaultRemindTime'
 export const DEFAULT_REMIND_TIME = '09:00'
 
+export const DEVELOPER_MODE_KEY = 'developerMode'
+/** Default off — debug routes/UI stay hidden until enabled in settings. */
+export const DEVELOPER_MODE_DEFAULT = false
+
 export const EventInputSchema = z.object({
   title: z.string().min(1).max(200),
   date: ymd,

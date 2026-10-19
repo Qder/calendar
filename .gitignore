@@ -38,3 +38,8 @@ src-tauri/gen/schemas
 
 # Test / tooling
 coverage
+
+# Signing / secrets (never commit)
+*.jks
+*.keystore
+keystore.properties
