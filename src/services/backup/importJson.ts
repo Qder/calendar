@@ -65,13 +65,8 @@ export async function importBackupPayload(
       }
       if (data.settings.length) await db.settings.bulkPut(data.settings)
       if (data.courses.length) await db.courses.bulkPut(data.courses)
-      if (data.periods.length) {
-        if (mode === 'overwrite') {
-          await db.periods.bulkPut(data.periods)
-        } else {
-          await db.periods.bulkPut(data.periods)
-        }
-      }
+      // overwrite already cleared periods above; merge upserts by primary key
+      if (data.periods.length) await db.periods.bulkPut(data.periods)
       if (data.semester) await db.semester.put(data.semester)
     },
   )

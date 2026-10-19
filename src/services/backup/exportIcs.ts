@@ -1,10 +1,7 @@
+import { addDaysYmd } from '@/domain/date'
 import { listEvents } from '@/db/repos/events'
 import { listRulesForEvent } from '@/db/repos/reminderRules'
 import type { CalendarEvent, ReminderRule } from '@/domain/schemas'
-
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
 
 /** Format as floating local ICS datetime YYYYMMDDTHHMMSS (no Z). */
 export function toIcsLocalDateTime(ymd: string, hm: string): string {
@@ -52,12 +49,14 @@ function rrRule(recurrence: CalendarEvent['recurrence']): string | null {
 }
 
 /**
- * VALARM DISPLAY with TRIGGER -P{days}DT{hh}H{mm}M
- * (daysBefore before DTSTART + rule clock as duration components).
+ * VALARM DISPLAY with absolute TRIGGER at the product reminder instant:
+ * eventDate minus daysBefore, at rule.time (HH:mm).
+ * Absolute DATE-TIME avoids the wrong "-P{days}DT{hh}H{mm}M" relative form
+ * (that treated the clock as a duration from DTSTART).
  */
-export function buildValarm(rule: ReminderRule): string[] {
-  const [hh, mm] = rule.time.split(':').map(Number)
-  const trigger = `TRIGGER:-P${rule.daysBefore}DT${pad2(hh)}H${pad2(mm)}M`
+export function buildValarm(rule: ReminderRule, eventDate: string): string[] {
+  const triggerYmd = addDaysYmd(eventDate, -rule.daysBefore)
+  const trigger = `TRIGGER;VALUE=DATE-TIME:${toIcsLocalDateTime(triggerYmd, rule.time)}`
   return [
     'BEGIN:VALARM',
     'ACTION:DISPLAY',
@@ -86,7 +85,7 @@ export function eventToVevent(
   if (rule) lines.push(rule)
 
   for (const r of rules) {
-    lines.push(...buildValarm(r))
+    lines.push(...buildValarm(r, event.date))
   }
 
   lines.push('END:VEVENT')
