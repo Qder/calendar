@@ -7,8 +7,9 @@ export const DB_NAME = 'calendar-local'
  * - v1: `_meta` placeholder (stage 0)
  * - v2: events / reminder_rules / scheduled_notifications / settings
  * - v3: events.recurrence (field); scheduled_notifications.occurrenceDate
+ * - v4: courses / periods / semester (stage 4 timetable)
  */
-export const DB_VERSION = 3
+export const DB_VERSION = 4
 
 export const STORE_DEFS_V2 = {
   _meta: 'key',
@@ -18,10 +19,21 @@ export const STORE_DEFS_V2 = {
   settings: 'key',
 } as const
 
+export const STORE_DEFS_V3 = {
+  _meta: 'key',
+  events: 'id, date, updatedAt',
+  reminder_rules: 'id, eventId',
+  scheduled_notifications: '++id, eventId, ruleId, occurrenceDate, triggerAt',
+  settings: 'key',
+} as const
+
 export const STORE_DEFS = {
   _meta: 'key',
   events: 'id, date, updatedAt',
   reminder_rules: 'id, eventId',
   scheduled_notifications: '++id, eventId, ruleId, occurrenceDate, triggerAt',
   settings: 'key',
+  courses: 'id, weekday, name, updatedAt',
+  periods: 'index',
+  semester: 'id',
 } as const

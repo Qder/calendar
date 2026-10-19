@@ -74,3 +74,71 @@ export const EventInputSchema = z.object({
 })
 
 export type EventInput = z.infer<typeof EventInputSchema>
+
+// —— Stage 4: semester / periods / courses ——
+
+export const WeekdaySchema = z.number().int().min(1).max(7)
+export type SchemaWeekday = z.infer<typeof WeekdaySchema>
+
+export const SemesterSchema = z.object({
+  /** Singleton id. */
+  id: z.literal('current'),
+  startMonday: ymd,
+  totalWeeks: z.number().int().min(1).max(60),
+  updatedAt: z.number().int(),
+})
+export type SemesterRow = z.infer<typeof SemesterSchema>
+
+export const PeriodSchema = z.object({
+  index: z.number().int().min(1).max(24),
+  start: hm,
+  end: hm,
+  label: z.string().max(40).optional(),
+})
+export type PeriodRow = z.infer<typeof PeriodSchema>
+
+/** Template / import column headers (fixed order). */
+export const COURSE_TEMPLATE_HEADERS = [
+  '课程名',
+  '星期',
+  '开始节',
+  '结束节',
+  '周次',
+  '教室',
+  '教师',
+] as const
+
+export const CourseRowSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(200),
+  /** 1=Mon … 7=Sun */
+  weekday: WeekdaySchema,
+  startPeriod: z.number().int().min(1).max(24),
+  endPeriod: z.number().int().min(1).max(24),
+  /** Expanded week indices. */
+  weeks: z.array(z.number().int().min(1)).min(1),
+  /** Original weeks cell text. */
+  weeksRaw: z.string().max(200),
+  room: z.string().max(100).optional().default(''),
+  teacher: z.string().max(100).optional().default(''),
+  createdAt: z.number().int(),
+  updatedAt: z.number().int(),
+})
+export type CourseRow = z.infer<typeof CourseRowSchema>
+
+/** One raw import line before persistence (weeks still string). */
+export const CourseImportDraftSchema = z
+  .object({
+    name: z.string().min(1, '课程名不能为空').max(200),
+    weekday: WeekdaySchema,
+    startPeriod: z.number().int().min(1).max(24),
+    endPeriod: z.number().int().min(1).max(24),
+    weeksRaw: z.string().min(1, '周次不能为空').max(200),
+    room: z.string().max(100).optional().default(''),
+    teacher: z.string().max(100).optional().default(''),
+  })
+  .refine((r) => r.endPeriod >= r.startPeriod, {
+    message: '结束节须 ≥ 开始节',
+    path: ['endPeriod'],
+  })
+export type CourseImportDraft = z.infer<typeof CourseImportDraftSchema>

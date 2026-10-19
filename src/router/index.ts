@@ -1,18 +1,29 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import CourseImportView from '@/views/CourseImportView.vue'
 import DebugNotificationView from '@/views/DebugNotificationView.vue'
 import EventEditView from '@/views/EventEditView.vue'
 import HomeView from '@/views/HomeView.vue'
 import MonthView from '@/views/MonthView.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import WeekView from '@/views/WeekView.vue'
 
 const router = createRouter({
-  // Hash history works under Capacitor file:// and Tauri custom schemes.
   history: createWebHashHistory(),
   routes: [
     {
       path: '/',
       name: 'month',
       component: MonthView,
+    },
+    {
+      path: '/week',
+      name: 'week',
+      component: WeekView,
+    },
+    {
+      path: '/courses/import',
+      name: 'course-import',
+      component: CourseImportView,
     },
     {
       path: '/home',

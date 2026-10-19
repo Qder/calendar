@@ -15,6 +15,20 @@
       </v-app-bar-title>
       <template #append>
         <v-btn
+          variant="text"
+          class="text-white"
+          :to="{ name: 'month' }"
+        >
+          月
+        </v-btn>
+        <v-btn
+          variant="text"
+          class="text-white"
+          :to="{ name: 'week' }"
+        >
+          课表
+        </v-btn>
+        <v-btn
           icon="mdi-cog"
           variant="text"
           aria-label="设置"
