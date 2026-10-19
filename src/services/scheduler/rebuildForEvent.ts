@@ -1,3 +1,4 @@
+import { listEvents } from '@/db/repos/events'
 import {
   deleteRulesForEvent,
   listRulesForEvent,
@@ -6,21 +7,27 @@ import {
 import {
   deleteScheduledById,
   deleteScheduledForEvent,
+  findScheduledDuplicate,
   insertScheduled,
 } from '@/db/repos/scheduledNotifications'
-import { computeTriggerAt } from '@/domain/reminders'
+import { addDaysYmd, todayYmd } from '@/domain/date'
+import { planTriggers } from '@/domain/reminders'
+import type { RecurrenceFreq } from '@/domain/recurrence'
 import type { CalendarEvent, ReminderRule } from '@/domain/schemas'
 import { getNotificationService } from '@/services/notification'
+import { MAX_SCHEDULED, WINDOW_DAYS } from './constants'
 
-function reminderBody(daysBefore: number, eventDate: string): string {
-  if (daysBefore === 0) return `今天 · ${eventDate}`
-  return `提前 ${daysBefore} 天 · ${eventDate}`
+function reminderBody(daysBefore: number, occurrenceDate: string): string {
+  if (daysBefore === 0) return `今天 · ${occurrenceDate}`
+  return `提前 ${daysBefore} 天 · ${occurrenceDate}`
+}
+
+function eventRecurrence(event: CalendarEvent): RecurrenceFreq {
+  return (event.recurrence ?? 'none') as RecurrenceFreq
 }
 
 /**
- * Cancel every OS notification + DB row for an event, then reschedule
- * from current reminder rules. Past triggers are skipped.
- *
+ * Cancel every OS notification + DB row for an event.
  * Business code must only call NotificationService — no platform checks here.
  */
 export async function cancelScheduledForEvent(eventId: string): Promise<void> {
@@ -35,64 +42,118 @@ export async function cancelScheduledForEvent(eventId: string): Promise<void> {
   }
 }
 
+/**
+ * Cancel then reschedule for one event within the rolling WINDOW_DAYS window.
+ * Caps at MAX_SCHEDULED nearest triggers. Skips past triggers.
+ */
 export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
   await cancelScheduledForEvent(event.id)
 
   const rules = await listRulesForEvent(event.id)
-  const svc = getNotificationService()
-  const now = new Date()
+  if (rules.length === 0) return
 
-  for (const rule of rules) {
-    const triggerAt = computeTriggerAt(
-      event.date,
-      rule.daysBefore,
-      rule.time,
-      now,
+  const now = new Date()
+  const fromYmd = todayYmd(now)
+  const toYmd = addDaysYmd(fromYmd, WINDOW_DAYS)
+
+  let planned = planTriggers({
+    startYmd: event.date,
+    recurrence: eventRecurrence(event),
+    rules,
+    fromYmd,
+    toYmd,
+    now,
+  })
+
+  if (planned.length > MAX_SCHEDULED) {
+    console.warn(
+      `[scheduler] event ${event.id}: ${planned.length} triggers exceeds MAX_SCHEDULED=${MAX_SCHEDULED}; keeping nearest`,
     )
-    if (!triggerAt) continue
+    planned = planned.slice(0, MAX_SCHEDULED)
+  }
+
+  const svc = getNotificationService()
+
+  for (const item of planned) {
+    // Defensive idempotency (cancel-first already clears; still guard duplicates).
+    const dup = await findScheduledDuplicate({
+      eventId: event.id,
+      ruleId: item.ruleId,
+      occurrenceDate: item.occurrenceDate,
+      triggerAt: item.triggerAt.getTime(),
+    })
+    if (dup) continue
 
     const notificationId = await insertScheduled({
       eventId: event.id,
-      ruleId: rule.id,
-      triggerAt: triggerAt.getTime(),
+      ruleId: item.ruleId,
+      occurrenceDate: item.occurrenceDate,
+      triggerAt: item.triggerAt.getTime(),
     })
 
     try {
       await svc.schedule({
         id: notificationId,
         title: event.title,
-        body: reminderBody(rule.daysBefore, event.date),
-        triggerAt,
+        body: reminderBody(item.daysBefore, item.occurrenceDate),
+        triggerAt: item.triggerAt,
       })
     } catch (err) {
-      // Avoid orphan DB rows when the OS schedule fails.
       await deleteScheduledById(notificationId)
-      console.warn('[scheduler] schedule failed, rolled back row', notificationId, err)
+      console.warn(
+        '[scheduler] schedule failed, rolled back row',
+        notificationId,
+        err,
+      )
       throw err
     }
   }
 }
 
-/** Replace the single stage-2 reminder rule for an event, then rebuild. */
-export async function setSingleReminderAndRebuild(
+/** Replace all reminder rules for an event, then rebuild. */
+export async function setRemindersAndRebuild(
   event: CalendarEvent,
-  reminder: { daysBefore: number; time: string } | null,
+  reminders: { daysBefore: number; time: string }[],
 ): Promise<void> {
   await deleteRulesForEvent(event.id)
-  if (reminder) {
+  for (let i = 0; i < reminders.length; i++) {
+    const r = reminders[i]
     const rule: ReminderRule = {
-      id: `${event.id}-r0`,
+      id: `${event.id}-r${i}`,
       eventId: event.id,
-      daysBefore: reminder.daysBefore,
-      time: reminder.time,
+      daysBefore: r.daysBefore,
+      time: r.time,
     }
     await putRule(rule)
   }
   await rebuildForEvent(event)
 }
 
+/** @deprecated stage-2 name; prefer setRemindersAndRebuild */
+export async function setSingleReminderAndRebuild(
+  event: CalendarEvent,
+  reminder: { daysBefore: number; time: string } | null,
+): Promise<void> {
+  await setRemindersAndRebuild(event, reminder ? [reminder] : [])
+}
+
 /** Full delete: cancel notifications, drop rules + scheduled rows (caller drops event). */
 export async function teardownEventReminders(eventId: string): Promise<void> {
   await cancelScheduledForEvent(eventId)
   await deleteRulesForEvent(eventId)
+}
+
+/**
+ * Refill the rolling window for every event (start / foreground).
+ * Each event is cancel-then-rebuild → no duplicate OS notifications.
+ */
+export async function rebuildAllScheduled(): Promise<void> {
+  const events = await listEvents()
+  for (const event of events) {
+    try {
+      await rebuildForEvent(event)
+    } catch (err) {
+      console.warn('[scheduler] rebuildAll failed for', event.id, err)
+    }
+  }
 }

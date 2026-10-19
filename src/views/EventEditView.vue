@@ -10,7 +10,7 @@
         :to="{ name: 'month' }"
       />
       <div class="text-h6 ms-2">
-        {{ isNew ? '新建事件' : '编辑事件' }}
+        {{ isNew ? '新建事件' : '编辑事件（整系列）' }}
       </div>
     </div>
 
@@ -22,6 +22,14 @@
       :text="error"
     />
 
+    <v-alert
+      v-if="!isNew"
+      type="info"
+      variant="tonal"
+      class="mb-4"
+      text="修改与删除作用于整个重复系列，不支持「仅此一次」。"
+    />
+
     <v-form @submit.prevent="onSave">
       <v-text-field
         v-model="title"
@@ -31,9 +39,17 @@
       />
       <v-text-field
         v-model="date"
-        label="日期"
+        label="开始日期（系列锚点）"
         type="date"
         required
+        class="mb-2"
+      />
+      <v-select
+        v-model="recurrence"
+        :items="recurrenceItems"
+        item-title="title"
+        item-value="value"
+        label="重复"
         class="mb-2"
       />
       <v-switch
@@ -58,32 +74,58 @@
       />
 
       <v-divider class="my-4" />
-      <div class="text-subtitle-2 mb-2">
-        提醒（单条）
+      <div class="d-flex align-center justify-space-between mb-2">
+        <div class="text-subtitle-2">
+          提醒（可多条）
+        </div>
+        <v-btn
+          size="small"
+          variant="tonal"
+          prepend-icon="mdi-plus"
+          @click="addReminder"
+        >
+          添加
+        </v-btn>
       </div>
-      <v-switch
-        v-model="remindEnabled"
-        label="启用提醒"
-        color="primary"
-        hide-details
-        class="mb-2"
-      />
-      <template v-if="remindEnabled">
+
+      <v-card
+        v-for="(r, idx) in reminders"
+        :key="idx"
+        variant="outlined"
+        class="mb-2 pa-3"
+      >
+        <div class="d-flex align-center justify-space-between mb-2">
+          <span class="text-caption">提醒 {{ idx + 1 }}</span>
+          <v-btn
+            icon="mdi-delete-outline"
+            size="small"
+            variant="text"
+            aria-label="删除提醒"
+            @click="reminders.splice(idx, 1)"
+          />
+        </div>
         <v-text-field
-          v-model.number="daysBefore"
+          v-model.number="r.daysBefore"
           label="事件前 N 天"
           type="number"
           min="0"
           max="365"
           class="mb-2"
+          hide-details
         />
         <v-text-field
-          v-model="remindTime"
+          v-model="r.time"
           label="提醒时刻"
           type="time"
-          class="mb-2"
+          hide-details
         />
-      </template>
+      </v-card>
+      <div
+        v-if="reminders.length === 0"
+        class="text-medium-emphasis text-body-2 mb-2"
+      >
+        未启用提醒（保存后不会调度通知）
+      </div>
 
       <div class="d-flex flex-wrap ga-2 mt-4">
         <v-btn
@@ -101,7 +143,7 @@
           :loading="saving"
           @click="onDelete"
         >
-          删除
+          删除整系列
         </v-btn>
         <v-btn
           variant="text"
@@ -118,8 +160,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { todayYmd } from '@/domain/date'
+import type { RecurrenceFreq } from '@/domain/recurrence'
 import { useEventsStore } from '@/stores/events'
 import { useSettingsStore } from '@/stores/settings'
+
+interface ReminderDraft {
+  daysBefore: number
+  time: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -133,15 +181,27 @@ const date = ref(todayYmd())
 const hasTime = ref(false)
 const time = ref('09:00')
 const note = ref('')
-const remindEnabled = ref(true)
-const daysBefore = ref(1)
-const remindTime = ref('09:00')
+const recurrence = ref<RecurrenceFreq>('none')
+const reminders = ref<ReminderDraft[]>([])
 const saving = ref(false)
 const error = ref('')
 
+const recurrenceItems = [
+  { title: '不重复', value: 'none' },
+  { title: '每周', value: 'weekly' },
+  { title: '每月', value: 'monthly' },
+  { title: '每年', value: 'yearly' },
+]
+
+function addReminder(): void {
+  reminders.value.push({
+    daysBefore: 1,
+    time: settings.defaultRemindTime || '09:00',
+  })
+}
+
 onMounted(async () => {
   await settings.load()
-  remindTime.value = settings.defaultRemindTime
 
   if (typeof route.query.date === 'string' && route.query.date) {
     date.value = route.query.date
@@ -158,14 +218,16 @@ onMounted(async () => {
     hasTime.value = Boolean(ev.time)
     time.value = ev.time ?? '09:00'
     note.value = ev.note ?? ''
-    const rule = await events.loadRule(ev.id)
-    if (rule) {
-      remindEnabled.value = true
-      daysBefore.value = rule.daysBefore
-      remindTime.value = rule.time
-    } else {
-      remindEnabled.value = false
-    }
+    recurrence.value = (ev.recurrence ?? 'none') as RecurrenceFreq
+    const rules = await events.loadRules(ev.id)
+    reminders.value = rules.map((r) => ({
+      daysBefore: r.daysBefore,
+      time: r.time,
+    }))
+  } else {
+    reminders.value = [
+      { daysBefore: 1, time: settings.defaultRemindTime || '09:00' },
+    ]
   }
 })
 
@@ -180,12 +242,11 @@ async function onSave(): Promise<void> {
         date: date.value,
         time: hasTime.value ? time.value : null,
         note: note.value,
-        reminder: remindEnabled.value
-          ? {
-              daysBefore: Number(daysBefore.value),
-              time: remindTime.value,
-            }
-          : null,
+        recurrence: recurrence.value,
+        reminders: reminders.value.map((r) => ({
+          daysBefore: Number(r.daysBefore),
+          time: r.time,
+        })),
       },
       id,
     )
@@ -199,7 +260,7 @@ async function onSave(): Promise<void> {
 
 async function onDelete(): Promise<void> {
   if (isNew.value) return
-  if (!globalThis.confirm('确定删除该事件及其提醒？')) return
+  if (!globalThis.confirm('确定删除整个事件系列及其全部提醒？')) return
   saving.value = true
   try {
     await events.remove(String(route.params.id))

@@ -5,7 +5,7 @@ import type {
   ScheduledNotification,
   SettingsRow,
 } from '@/domain/schemas'
-import { DB_NAME, STORE_DEFS } from './schema'
+import { DB_NAME, STORE_DEFS, STORE_DEFS_V2 } from './schema'
 
 export class CalendarDb extends Dexie {
   _meta!: EntityTable<{ key: string; value: string }, 'key'>
@@ -23,7 +23,20 @@ export class CalendarDb extends Dexie {
     this.version(1).stores({
       _meta: 'key',
     })
-    this.version(2).stores(STORE_DEFS)
+    this.version(2).stores(STORE_DEFS_V2)
+    this.version(3)
+      .stores(STORE_DEFS)
+      .upgrade(async (tx) => {
+        // Drop legacy scheduled rows (no occurrenceDate); rebuildAll refills on launch.
+        await tx.table('scheduled_notifications').clear()
+        // Default recurrence for events created in stage 2.
+        await tx
+          .table('events')
+          .toCollection()
+          .modify((ev: Record<string, unknown>) => {
+            if (ev.recurrence == null) ev.recurrence = 'none'
+          })
+      })
   }
 }
 

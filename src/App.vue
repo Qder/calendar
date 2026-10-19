@@ -35,4 +35,5 @@
 </template>
 
 <script setup lang="ts">
+// Schedule resume hooks are wired from main.ts (visibility/focus → rebuildAll).
 </script>

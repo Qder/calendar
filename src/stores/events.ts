@@ -4,11 +4,15 @@ import {
   deleteEvent,
   getEvent,
   listEvents,
-  listEventsInRange,
   putEvent,
 } from '@/db/repos/events'
 import { listRulesForEvent } from '@/db/repos/reminderRules'
 import { getDefaultRemindTime } from '@/db/repos/settings'
+import { addDaysYmd, endOfMonthYmd, startOfMonthYmd } from '@/domain/date'
+import {
+  expandOccurrences,
+  type RecurrenceFreq,
+} from '@/domain/recurrence'
 import {
   EventInputSchema,
   type CalendarEvent,
@@ -16,7 +20,7 @@ import {
   type ReminderRule,
 } from '@/domain/schemas'
 import {
-  setSingleReminderAndRebuild,
+  setRemindersAndRebuild,
   teardownEventReminders,
 } from '@/services/scheduler/rebuildForEvent'
 
@@ -25,6 +29,12 @@ function newId(): string {
     return crypto.randomUUID()
   }
   return `e-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+/** An event occurrence shown on the month grid / day list. */
+export interface EventOccurrence {
+  event: CalendarEvent
+  occurrenceDate: string
 }
 
 export const useEventsStore = defineStore('events', () => {
@@ -40,19 +50,36 @@ export const useEventsStore = defineStore('events', () => {
     }
   }
 
-  async function eventsInMonth(monthYmd: string): Promise<CalendarEvent[]> {
-    const y = Number(monthYmd.slice(0, 4))
-    const m = Number(monthYmd.slice(5, 7))
-    const from = `${monthYmd.slice(0, 7)}-01`
-    const last = new Date(y, m, 0).getDate()
-    const to = `${monthYmd.slice(0, 7)}-${String(last).padStart(2, '0')}`
-    return listEventsInRange(from, to)
+  /**
+   * Expand all series into occurrences that fall inside the month of `monthYmd`.
+   * Recurring series whose start is before the month still appear when an
+   * occurrence lands in-range.
+   */
+  async function occurrencesInMonth(monthYmd: string): Promise<EventOccurrence[]> {
+    const from = startOfMonthYmd(monthYmd)
+    const to = endOfMonthYmd(monthYmd)
+    const all = await listEvents()
+    const out: EventOccurrence[] = []
+    for (const event of all) {
+      if (event.date > to) continue
+      const freq = (event.recurrence ?? 'none') as RecurrenceFreq
+      const dates = expandOccurrences(event.date, freq, from, to)
+      for (const occurrenceDate of dates) {
+        out.push({ event, occurrenceDate })
+      }
+    }
+    return out
   }
 
   async function load(id: string): Promise<CalendarEvent | undefined> {
     return getEvent(id)
   }
 
+  async function loadRules(eventId: string): Promise<ReminderRule[]> {
+    return listRulesForEvent(eventId)
+  }
+
+  /** @deprecated use loadRules */
   async function loadRule(eventId: string): Promise<ReminderRule | undefined> {
     const rules = await listRulesForEvent(eventId)
     return rules[0]
@@ -71,22 +98,24 @@ export const useEventsStore = defineStore('events', () => {
       date: parsed.date,
       time: parsed.time ?? null,
       note: parsed.note ?? '',
+      recurrence: parsed.recurrence ?? 'none',
       createdAt: prev?.createdAt ?? now,
       updatedAt: now,
     }
 
     await putEvent(event)
 
-    let reminder = parsed.reminder
-    if (reminder === undefined) {
+    let reminders = parsed.reminders
+    if (reminders === undefined) {
       const defaultTime = await getDefaultRemindTime()
-      reminder = { daysBefore: 1, time: defaultTime }
+      reminders = [{ daysBefore: 1, time: defaultTime }]
     }
-    await setSingleReminderAndRebuild(event, reminder ?? null)
+    await setRemindersAndRebuild(event, reminders)
     await refresh()
     return event
   }
 
+  /** Whole-series delete only (stage 3: no "this occurrence"). */
   async function remove(id: string): Promise<void> {
     await teardownEventReminders(id)
     await deleteEvent(id)
@@ -97,10 +126,16 @@ export const useEventsStore = defineStore('events', () => {
     items,
     loading,
     refresh,
-    eventsInMonth,
+    occurrencesInMonth,
     load,
+    loadRules,
     loadRule,
     save,
     remove,
   }
 })
+
+/** Helper for tests / callers needing a forward window label. */
+export function windowEndYmd(fromYmd: string, days: number): string {
+  return addDaysYmd(fromYmd, days)
+}

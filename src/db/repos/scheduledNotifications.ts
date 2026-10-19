@@ -11,9 +11,15 @@ export async function listScheduledForEvent(
   return rows.filter((r): r is ScheduledNotification => typeof r.id === 'number')
 }
 
+export async function listAllScheduled(): Promise<ScheduledNotification[]> {
+  const rows = await db.scheduled_notifications.toArray()
+  return rows.filter((r): r is ScheduledNotification => typeof r.id === 'number')
+}
+
 export async function insertScheduled(row: {
   eventId: string
   ruleId: string
+  occurrenceDate: string
   triggerAt: number
 }): Promise<number> {
   const id = await db.scheduled_notifications.add(row)
@@ -37,4 +43,24 @@ export async function getScheduledById(
   const row = await db.scheduled_notifications.get(id)
   if (!row || typeof row.id !== 'number') return undefined
   return row as ScheduledNotification
+}
+
+/** Idempotency lookup: same event+rule+occurrence+triggerAt. */
+export async function findScheduledDuplicate(args: {
+  eventId: string
+  ruleId: string
+  occurrenceDate: string
+  triggerAt: number
+}): Promise<ScheduledNotification | undefined> {
+  const rows = await db.scheduled_notifications
+    .where('eventId')
+    .equals(args.eventId)
+    .toArray()
+  return rows.find(
+    (r): r is ScheduledNotification =>
+      typeof r.id === 'number' &&
+      r.ruleId === args.ruleId &&
+      r.occurrenceDate === args.occurrenceDate &&
+      r.triggerAt === args.triggerAt,
+  )
 }

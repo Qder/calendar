@@ -1,21 +1,29 @@
 # Calendar
 
-本地优先个人日历：**阶段 0 骨架** + **阶段 1 通知保活** + **阶段 2 事件 / 月视图 / 单条提醒**。
+本地优先个人日历：**阶段 0–3** 已落地（骨架 → 通知保活 → 事件/月视图 → **多提醒 + 重复**）。
 
-**已有**：Dexie 事件与提醒规则、月视图 CRUD、默认提醒时刻、保存/删除时经 `NotificationService` 重建系统通知。
+**已有**：Dexie 事件与多条提醒规则、周/月/年重复、月视图展开发生日、默认提醒时刻、滚动 **60 天**通知窗口、保存/删除时经 `NotificationService` 先取消再重建。
 
-**当前不做**：课表、Excel 导入、备份导出、多条/复杂重复提醒、账号、云同步、后端。
+**当前不做（阶段 4+）**：课表、Excel 导入、备份导出、账号、云同步、后端；无「仅此一次」改删。
 
 项目规则见 [`AGENTS.md`](AGENTS.md)。真机清单见 [`docs/real-device-test.md`](docs/real-device-test.md)。
+
+## 阶段 3 调度约定
+
+- **窗口**：只调度本地今天起未来 `WINDOW_DAYS=60` 天内的触发；启动与回前台（`visibilitychange` / `focus`）调用 `rebuildAll` 幂等补窗口。
+- **上限**：单次按事件重建最多 `MAX_SCHEDULED=64` 条；超出只保留最近（最早触发）并打日志。
+- **幂等**：同一 `eventId + ruleId + occurrenceDate + triggerAt` 不重复挂；重建时先 cancel 再 schedule。
+- **改删**：只整系列（无「仅此一次」）。
+- **月末 / 闰年**：从系列锚点按 N 个周期展开；短月与非闰年 **夹到当月最后一天**（如 1/31→2/28、2/29→非闰年 2/28）。见 `src/domain/recurrence.ts`。
 
 ## 技术栈
 
 - Vue 3 + TypeScript (strict) + Vite + Pinia + Vue Router + Vuetify 3 + dayjs + Dexie + zod
 - 通知：`src/services/notification/`（`NotificationService`；Capacitor / Desktop / Web）
-- 调度：`src/services/scheduler/`（先取消再重建；业务不散落平台判断）
+- 调度：`src/services/scheduler/`（窗口、上限、rebuildAll；业务不散落平台判断）
 - 手机：Capacitor 8 + `@capacitor/local-notifications`（占位 app id：`com.qder.calendar`）
 - 桌面：Tauri 2 + `plugin-notification` + `plugin-autostart` + 系统托盘
-- 测试：vitest（`domain/` 纯函数）
+- 测试：vitest（`domain/` 纯函数，含重复展开）
 
 ## 脚本
 
@@ -33,7 +41,7 @@ npm run tauri:build
 ```
 
 - 月视图：`/#/`
-- 新建 / 编辑：`/#/events/new`、`/#/events/:id`
+- 新建 / 编辑（整系列）：`/#/events/new`、`/#/events/:id`
 - 设置（默认提醒时刻）：`/#/settings`
 - 骨架 Hello：`/#/home`
 - 通知调试：`/#/debug/notifications`
@@ -72,10 +80,10 @@ npm run tauri:build
 
 ```
 src/
-  domain/                 日期 / 提醒纯函数 + zod + vitest
-  db/                     Dexie（events / reminder_rules / scheduled_notifications / settings）
+  domain/                 日期 / 重复 / 提醒纯函数 + zod + vitest
+  db/                     Dexie v3（events.recurrence / occurrenceDate）
   services/notification/  阶段 1 通知三实现
-  services/scheduler/     按事件重建通知；点通知跳转（Capacitor）
+  services/scheduler/     窗口重建、rebuildAll、点通知跳转
   services/importer|backup/  后续占位
   stores/ views/ components/ router/
 android/                  Capacitor Android
@@ -86,4 +94,4 @@ docs/real-device-test.md
 
 ## 提交策略
 
-未经 Yang / 协调人明确「提交 / push」授权，**不** `git commit` / `git push`。
+阶段 2–5：Yang / 协调人已授权可自行中文 commit + push（以当轮指令为准）。

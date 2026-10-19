@@ -65,15 +65,15 @@
         {{ selectedDate }} 的事件
       </v-card-title>
       <v-list
-        v-if="dayEvents.length"
+        v-if="dayOccurrences.length"
         lines="two"
       >
         <v-list-item
-          v-for="ev in dayEvents"
-          :key="ev.id"
-          :title="ev.title"
-          :subtitle="ev.time ? ev.time : '全天'"
-          :to="{ name: 'event-edit', params: { id: ev.id } }"
+          v-for="occ in dayOccurrences"
+          :key="`${occ.event.id}-${occ.occurrenceDate}`"
+          :title="occ.event.title"
+          :subtitle="occurrenceSubtitle(occ)"
+          :to="{ name: 'event-edit', params: { id: occ.event.id } }"
         >
           <template #prepend>
             <v-icon icon="mdi-calendar" />
@@ -100,8 +100,10 @@ import {
   todayYmd,
   weekdayMon0,
 } from '@/domain/date'
-import type { CalendarEvent } from '@/domain/schemas'
-import { useEventsStore } from '@/stores/events'
+import {
+  useEventsStore,
+  type EventOccurrence,
+} from '@/stores/events'
 
 const weekLabels = ['一', '二', '三', '四', '五', '六', '日']
 const store = useEventsStore()
@@ -109,23 +111,23 @@ const store = useEventsStore()
 const today = todayYmd()
 const cursor = ref(startOfMonthYmd(today))
 const selectedDate = ref(today)
-const monthEvents = ref<CalendarEvent[]>([])
+const monthOccurrences = ref<EventOccurrence[]>([])
 
 const year = computed(() => Number(cursor.value.slice(0, 4)))
 const month = computed(() => Number(cursor.value.slice(5, 7)))
 
 const counts = computed(() => {
   const map: Record<string, number> = {}
-  for (const ev of monthEvents.value) {
-    map[ev.date] = (map[ev.date] ?? 0) + 1
+  for (const occ of monthOccurrences.value) {
+    map[occ.occurrenceDate] = (map[occ.occurrenceDate] ?? 0) + 1
   }
   return map
 })
 
-const dayEvents = computed(() =>
-  monthEvents.value
-    .filter((e) => e.date === selectedDate.value)
-    .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? '')),
+const dayOccurrences = computed(() =>
+  monthOccurrences.value
+    .filter((o) => o.occurrenceDate === selectedDate.value)
+    .sort((a, b) => (a.event.time ?? '').localeCompare(b.event.time ?? '')),
 )
 
 interface Cell {
@@ -161,8 +163,16 @@ const cells = computed((): Cell[] => {
   return out
 })
 
+function occurrenceSubtitle(occ: EventOccurrence): string {
+  const time = occ.event.time ? occ.event.time : '全天'
+  const rec = occ.event.recurrence && occ.event.recurrence !== 'none'
+    ? ` · 重复`
+    : ''
+  return `${time}${rec}`
+}
+
 async function loadMonth(): Promise<void> {
-  monthEvents.value = await store.eventsInMonth(cursor.value)
+  monthOccurrences.value = await store.occurrencesInMonth(cursor.value)
 }
 
 function shiftMonth(delta: number): void {
