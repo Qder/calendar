@@ -9,7 +9,7 @@
       </v-card-title>
       <v-card-text>
         <p class="text-body-1 mb-2">
-          本地优先个人日历 · 阶段 0 骨架
+          本地优先个人日历 · 阶段 2 事件与月视图
         </p>
         <p class="text-body-2 mb-4">
           当前平台：<strong>{{ platform }}</strong>
@@ -17,6 +17,15 @@
         <v-btn
           color="primary"
           variant="flat"
+          class="me-2 mb-2"
+          :to="{ name: 'month' }"
+        >
+          月视图
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          class="me-2 mb-2"
           :to="{ name: 'debug-notifications' }"
         >
           通知调试页

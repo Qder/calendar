@@ -1,18 +1,29 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type {
+  CalendarEvent,
+  ReminderRule,
+  ScheduledNotification,
+  SettingsRow,
+} from '@/domain/schemas'
+import { DB_NAME, STORE_DEFS } from './schema'
 
-/**
- * Dexie shell for later phases. No business tables yet
- * (events / courses land after stage 0).
- */
 export class CalendarDb extends Dexie {
-  // Placeholder typed store so Dexie is wired without CRUD APIs.
   _meta!: EntityTable<{ key: string; value: string }, 'key'>
+  events!: EntityTable<CalendarEvent, 'id'>
+  reminder_rules!: EntityTable<ReminderRule, 'id'>
+  scheduled_notifications!: EntityTable<
+    Omit<ScheduledNotification, 'id'> & { id?: number },
+    'id'
+  >
+  settings!: EntityTable<SettingsRow, 'key'>
 
   constructor() {
-    super('calendar-local')
+    super(DB_NAME)
+    // Keep v1 so existing IndexedDB installs upgrade cleanly.
     this.version(1).stores({
       _meta: 'key',
     })
+    this.version(2).stores(STORE_DEFS)
   }
 }
 
