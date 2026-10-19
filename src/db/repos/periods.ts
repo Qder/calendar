@@ -16,7 +16,14 @@ export async function savePeriods(periods: PeriodRow[]): Promise<void> {
       const msg = r.error.issues.map((x) => x.message).join('；')
       throw new Error(`第${p.index ?? i + 1}节：${msg}`)
     }
-    return r.data
+    // Zod 已产出新对象；再浅拷贝一层，避免 reactive Proxy 进 IDB
+    const d = r.data
+    return {
+      index: Number(d.index),
+      start: String(d.start),
+      end: String(d.end),
+      ...(d.label !== undefined ? { label: String(d.label) } : {}),
+    } satisfies PeriodRow
   })
   await db.transaction('rw', db.periods, async () => {
     await db.periods.clear()
