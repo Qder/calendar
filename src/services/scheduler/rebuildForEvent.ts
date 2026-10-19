@@ -11,7 +11,7 @@ import {
   insertScheduled,
 } from '@/db/repos/scheduledNotifications'
 import { addDaysYmd, todayYmd } from '@/domain/date'
-import { planTriggers } from '@/domain/reminders'
+import { maxDaysBefore, planTriggers } from '@/domain/reminders'
 import type { RecurrenceFreq } from '@/domain/recurrence'
 import type { CalendarEvent, ReminderRule } from '@/domain/schemas'
 import { getNotificationService } from '@/services/notification'
@@ -54,7 +54,11 @@ export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
 
   const now = new Date()
   const fromYmd = todayYmd(now)
-  const toYmd = addDaysYmd(fromYmd, WINDOW_DAYS)
+  // Occurrence expand extends past WINDOW by max daysBefore so early reminders
+  // for later occurrences still land inside the trigger window.
+  const expandDays = WINDOW_DAYS + maxDaysBefore(rules)
+  const toYmd = addDaysYmd(fromYmd, expandDays)
+  const windowEndMs = now.getTime() + WINDOW_DAYS * 24 * 60 * 60 * 1000
 
   let planned = planTriggers({
     startYmd: event.date,
@@ -63,6 +67,7 @@ export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
     fromYmd,
     toYmd,
     now,
+    windowEndMs,
   })
 
   if (planned.length > MAX_SCHEDULED) {

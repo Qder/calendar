@@ -32,8 +32,25 @@ export interface PlannedTrigger {
 }
 
 /**
- * Expand occurrences in [fromYmd, toYmd], then × each rule → future triggers only.
- * Sorted by triggerAt ascending (nearest first).
+ * Max daysBefore across rules (0 when empty). Used to extend occurrence expand
+ * so reminders that fire inside the schedule window for later occurrences are kept.
+ */
+export function maxDaysBefore(rules: { daysBefore: number }[]): number {
+  let max = 0
+  for (const r of rules) {
+    if (r.daysBefore > max) max = r.daysBefore
+  }
+  return max
+}
+
+/**
+ * Expand occurrences in an extended window, then keep only triggers whose
+ * triggerAt falls in (now, windowEndMs]. Sorted by triggerAt ascending.
+ *
+ * Callers typically pass:
+ * - fromYmd = today
+ * - toYmd = today + WINDOW_DAYS + maxDaysBefore(rules)  (occurrence upper bound)
+ * - windowEndMs = now + WINDOW_DAYS (trigger cutoff)
  */
 export function planTriggers(args: {
   startYmd: string
@@ -42,8 +59,13 @@ export function planTriggers(args: {
   fromYmd: string
   toYmd: string
   now?: Date
+  /** Exclusive upper bound for triggerAt; defaults to no extra cutoff beyond computeTriggerAt past-skip. */
+  windowEndMs?: number
 }): PlannedTrigger[] {
   const now = args.now ?? new Date()
+  const nowMs = now.getTime()
+  const windowEndMs = args.windowEndMs
+
   const occurrences = expandOccurrences(
     args.startYmd,
     args.recurrence,
@@ -60,6 +82,9 @@ export function planTriggers(args: {
         now,
       )
       if (!triggerAt) continue
+      const t = triggerAt.getTime()
+      if (t <= nowMs) continue
+      if (windowEndMs != null && t > windowEndMs) continue
       planned.push({
         ruleId: rule.id,
         occurrenceDate,

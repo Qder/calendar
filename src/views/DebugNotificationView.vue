@@ -9,7 +9,7 @@
       class="mb-4"
       title="本阶段只验证通知"
     >
-      无日历 / 课表功能。Android：划掉后靠系统 Local Notifications。
+      调试页：手动调度系统通知（与月视图事件独立）。Android：划掉后靠系统 Local Notifications。
       Windows：关窗口靠托盘保活；杀进程不保证弹出。
     </v-alert>
 
