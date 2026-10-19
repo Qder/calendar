@@ -20,7 +20,8 @@
     "ui:screenshots:s1": "node scripts/ui-s1-screenshots.mjs",
     "ui:screenshots:s2": "node scripts/ui-s2-screenshots.mjs",
     "ui:screenshots:s3": "node scripts/ui-s3-screenshots.mjs",
-    "ui:screenshots:s4": "node scripts/ui-s4-screenshots.mjs"
+    "ui:screenshots:s4": "node scripts/ui-s4-screenshots.mjs",
+    "ui:screenshots:s5": "node scripts/ui-s5-screenshots.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
