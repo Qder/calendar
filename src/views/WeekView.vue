@@ -1,123 +1,123 @@
 <template>
   <div class="week-page">
     <header class="week-header">
-      <v-btn
-        icon="mdi-chevron-left"
-        variant="text"
-        size="large"
-        class="week-header__nav"
-        aria-label="上一周"
-        :disabled="!semesterReady || weekIndex <= 1"
-        @click="shiftWeek(-1)"
-      />
+      <!-- 主行：单行不折行 ‹ 第N周 › ⋮（桌面可露出添加/导入） -->
+      <div class="week-header__main">
+        <v-btn
+          icon="mdi-chevron-left"
+          variant="text"
+          size="large"
+          class="week-header__nav"
+          aria-label="上一周"
+          :disabled="!semesterReady || weekIndex <= 1"
+          @click="shiftWeek(-1)"
+        />
 
-      <div class="week-header__title">
-        <template v-if="semesterReady">
-          <span class="week-header__week tabular-nums">
+        <div class="week-header__title">
+          <span
+            v-if="semesterReady"
+            class="week-header__week tabular-nums"
+          >
             第 {{ weekIndex }} 周
           </span>
-          <span class="week-header__range text-medium-emphasis">
-            {{ weekRangeLabel }}
-            <template v-if="totalWeeks">
-              · 共 {{ totalWeeks }} 周
+          <span
+            v-else
+            class="week-header__week"
+          >
+            课表
+          </span>
+        </div>
+
+        <v-btn
+          icon="mdi-chevron-right"
+          variant="text"
+          size="large"
+          class="week-header__nav"
+          aria-label="下一周"
+          :disabled="!semesterReady || weekIndex >= totalWeeks"
+          @click="shiftWeek(1)"
+        />
+
+        <div class="week-header__actions">
+          <v-btn
+            color="primary"
+            variant="flat"
+            class="d-none d-sm-inline-flex"
+            :disabled="!semesterReady"
+            :to="{ name: 'course-new' }"
+          >
+            添加课程
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            class="d-none d-sm-inline-flex"
+            :to="{ name: 'course-import' }"
+          >
+            导入
+          </v-btn>
+          <v-btn
+            v-if="showThisWeekBtn"
+            class="d-none d-sm-inline-flex week-header__this"
+            variant="tonal"
+            color="primary"
+            aria-label="回到本周"
+            @click="goThisWeek"
+          >
+            本周
+          </v-btn>
+          <v-menu>
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                v-bind="menuProps"
+                icon="mdi-dots-vertical"
+                variant="text"
+                aria-label="更多"
+              />
             </template>
+            <v-list density="compact">
+              <v-list-item
+                v-if="showThisWeekBtn"
+                title="回到本周"
+                prepend-icon="mdi-calendar-today"
+                @click="goThisWeek"
+              />
+              <v-list-item
+                class="d-sm-none"
+                :disabled="!semesterReady"
+                :to="{ name: 'course-new' }"
+                title="添加课程"
+                prepend-icon="mdi-plus"
+              />
+              <v-list-item
+                class="d-sm-none"
+                :to="{ name: 'course-import' }"
+                title="导入课表"
+                prepend-icon="mdi-upload"
+              />
+              <v-list-item
+                :to="{ name: 'settings' }"
+                title="编辑节次时间"
+                prepend-icon="mdi-clock-outline"
+              />
+            </v-list>
+          </v-menu>
+        </div>
+      </div>
+
+      <!-- 副行：日期范围 + 共 N 周 -->
+      <div class="week-header__sub text-medium-emphasis">
+        <template v-if="semesterReady">
+          <span class="week-header__range">{{ weekRangeLabel }}</span>
+          <span
+            v-if="totalWeeks"
+            class="week-header__total"
+          >
+            · 共 {{ totalWeeks }} 周
           </span>
         </template>
         <template v-else>
-          <span class="week-header__week">
-            课表
-          </span>
-          <span class="week-header__range text-medium-emphasis">
-            请先配置学期
-          </span>
+          请先配置学期
         </template>
-      </div>
-
-      <v-btn
-        icon="mdi-chevron-right"
-        variant="text"
-        size="large"
-        class="week-header__nav"
-        aria-label="下一周"
-        :disabled="!semesterReady || weekIndex >= totalWeeks"
-        @click="shiftWeek(1)"
-      />
-
-      <v-btn
-        v-if="showThisWeekBtn"
-        class="week-header__this"
-        variant="tonal"
-        color="primary"
-        aria-label="回到本周"
-        @click="goThisWeek"
-      >
-        本周
-      </v-btn>
-
-      <div class="week-header__actions">
-        <v-btn
-          color="primary"
-          variant="flat"
-          class="d-none d-sm-inline-flex"
-          :disabled="!semesterReady"
-          :to="{ name: 'course-new' }"
-        >
-          添加课程
-        </v-btn>
-        <v-btn
-          variant="tonal"
-          class="d-none d-sm-inline-flex"
-          :to="{ name: 'course-import' }"
-        >
-          导入
-        </v-btn>
-        <v-menu>
-          <template #activator="{ props: menuProps }">
-            <v-btn
-              v-bind="menuProps"
-              icon="mdi-dots-vertical"
-              variant="text"
-              class="d-sm-none"
-              aria-label="更多"
-            />
-          </template>
-          <v-list density="compact">
-            <v-list-item
-              :disabled="!semesterReady"
-              :to="{ name: 'course-new' }"
-              title="添加课程"
-              prepend-icon="mdi-plus"
-            />
-            <v-list-item
-              :to="{ name: 'course-import' }"
-              title="导入课表"
-              prepend-icon="mdi-upload"
-            />
-            <v-list-item
-              :to="{ name: 'settings' }"
-              title="编辑节次时间"
-              prepend-icon="mdi-clock-outline"
-            />
-          </v-list>
-        </v-menu>
-        <v-menu>
-          <template #activator="{ props: menuProps }">
-            <v-btn
-              v-bind="menuProps"
-              icon="mdi-dots-vertical"
-              variant="text"
-              class="d-none d-sm-inline-flex"
-              aria-label="更多"
-            />
-          </template>
-          <v-list density="compact">
-            <v-list-item
-              :to="{ name: 'settings' }"
-              title="编辑节次时间"
-              prepend-icon="mdi-clock-outline"
-            />
-          </v-list>
-        </v-menu>
       </div>
     </header>
 
@@ -366,44 +366,70 @@ watch(
 
 .week-header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
   margin-bottom: 12px;
+  min-width: 0;
+}
+
+.week-header__main {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
 }
 
 .week-header__nav {
   min-width: 44px !important;
   min-height: 44px !important;
+  flex: 0 0 auto;
 }
 
 .week-header__title {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 4px 8px;
-  min-width: 0;
+  padding: 4px 4px;
+  overflow: hidden;
 }
 
 .week-header__week {
-  font-size: clamp(1.15rem, 4.5vw, 1.5rem);
+  font-size: clamp(1.05rem, 4vw, 1.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.2;
   white-space: nowrap;
-  color: rgb(var(--v-theme-on-background));
-}
-
-.week-header__range {
-  font-size: 0.8rem;
-  line-height: 1.3;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  color: rgb(var(--v-theme-on-background));
+}
+
+.week-header__sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 48px;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.week-header__range,
+.week-header__total {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-header__range {
+  min-width: 0;
 }
 
 .week-header__this {
@@ -415,8 +441,8 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
-  margin-inline-start: 4px;
+  flex: 0 0 auto;
+  margin-inline-start: 2px;
 }
 
 .week-scroll-hint {

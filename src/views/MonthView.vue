@@ -221,9 +221,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import DayTimelinePanel from '@/components/DayTimelinePanel.vue'
 import {
-  courseToDayItem,
-  eventToDayItem,
-  sortDayItems,
+  buildItemsByDate,
   takeWithOverflow,
   type MonthDayItem,
 } from '@/components/monthDayItems'
@@ -237,7 +235,6 @@ import {
 } from '@/domain/date'
 import {
   dateToWeekIndex,
-  weekdayOfYmd,
   type SemesterConfig,
 } from '@/domain/semester'
 import {
@@ -323,37 +320,16 @@ const cells = computed((): Cell[] => {
   return out
 })
 
-/** 按日汇总的只读条目（事项 + 课程） */
+/** 按日汇总的只读条目（事项 + 课程）；显式读 coursesStore.items 以稳定订阅 */
 const itemsByDate = computed((): Record<string, MonthDayItem[]> => {
-  const map: Record<string, MonthDayItem[]> = {}
-  const periods = semesterStore.periods
-  const cfg = semesterConfig.value
-
-  for (const occ of monthOccurrences.value) {
-    const item = eventToDayItem(occ)
-    ;(map[occ.occurrenceDate] ??= []).push(item)
-  }
-
-  if (cfg) {
-    const start = cells.value[0]?.ymd
-    const end = cells.value[cells.value.length - 1]?.ymd
-    if (start && end) {
-      // 遍历网格日期，挂上当日课程
-      for (const cell of cells.value) {
-        const wi = dateToWeekIndex(cfg, cell.ymd)
-        const wd = weekdayOfYmd(cell.ymd)
-        const courses = coursesStore.meetingOn(wi, wd)
-        for (const c of courses) {
-          ;(map[cell.ymd] ??= []).push(courseToDayItem(c, periods))
-        }
-      }
-    }
-  }
-
-  for (const ymd of Object.keys(map)) {
-    map[ymd] = sortDayItems(map[ymd]!)
-  }
-  return map
+  const courses = coursesStore.items
+  return buildItemsByDate({
+    occurrences: monthOccurrences.value,
+    courses,
+    periods: semesterStore.periods,
+    semester: semesterConfig.value,
+    dates: cells.value.map((c) => c.ymd),
+  })
 })
 
 function cellPreview(ymd: string): { shown: MonthDayItem[]; overflow: number } {

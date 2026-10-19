@@ -8,17 +8,19 @@
       {{ title }}
     </v-card-title>
 
+    <!-- 有条目时优先展示（含课程）；loading/error 不整块盖住 -->
     <v-skeleton-loader
-      v-if="loading"
+      v-if="loading && !items.length"
       type="list-item-two-line@3"
       class="mx-2"
     />
 
     <v-alert
-      v-else-if="error"
+      v-if="error && !loading"
       type="error"
       variant="tonal"
       class="ma-4"
+      :class="{ 'mb-2': items.length }"
       :text="error"
     >
       <template #append>
@@ -34,7 +36,7 @@
     </v-alert>
 
     <div
-      v-else-if="!items.length"
+      v-if="!loading && !items.length && !error"
       class="day-panel__empty px-4 pb-4"
     >
       <p class="text-body-2 text-medium-emphasis mb-3">
@@ -51,8 +53,9 @@
     </div>
 
     <v-list
-      v-else
+      v-if="items.length"
       class="py-0 px-1"
+      :class="{ 'pb-2': Boolean(error) }"
       lines="two"
     >
       <v-list-item

@@ -4,6 +4,11 @@
 import { courseColorForName } from '@/components/courseColors'
 import type { EventOccurrence } from '@/stores/events'
 import type { CourseRow, PeriodRow } from '@/domain/schemas'
+import {
+  dateToWeekIndex,
+  weekdayOfYmd,
+  type SemesterConfig,
+} from '@/domain/semester'
 
 export type MonthDayItemKind = 'event' | 'course'
 
@@ -83,4 +88,45 @@ export function takeWithOverflow<T>(
 ): { shown: T[]; overflow: number } {
   if (items.length <= take) return { shown: items, overflow: 0 }
   return { shown: items.slice(0, take), overflow: items.length - take }
+}
+
+/**
+ * 按日聚合事项 + 课程（纯函数，便于单测）。
+ * semester 为 null 时只挂事项；课程按 weekIndex+weekday 过滤。
+ */
+export function buildItemsByDate(input: {
+  occurrences: EventOccurrence[]
+  courses: CourseRow[]
+  periods: PeriodRow[]
+  semester: SemesterConfig | null
+  /** 参与挂课的日期（通常为月历网格全部 ymd） */
+  dates: string[]
+}): Record<string, MonthDayItem[]> {
+  const map: Record<string, MonthDayItem[]> = {}
+
+  for (const occ of input.occurrences) {
+    const item = eventToDayItem(occ)
+    ;(map[occ.occurrenceDate] ??= []).push(item)
+  }
+
+  if (input.semester) {
+    const cfg = input.semester
+    for (const ymd of input.dates) {
+      const wi = dateToWeekIndex(cfg, ymd)
+      if (wi == null) continue
+      const wd = weekdayOfYmd(ymd)
+      const meeting = input.courses
+        .filter((c) => c.weekday === wd && c.weeks.includes(wi))
+        .slice()
+        .sort((a, b) => a.startPeriod - b.startPeriod)
+      for (const c of meeting) {
+        ;(map[ymd] ??= []).push(courseToDayItem(c, input.periods))
+      }
+    }
+  }
+
+  for (const ymd of Object.keys(map)) {
+    map[ymd] = sortDayItems(map[ymd]!)
+  }
+  return map
 }
