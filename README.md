@@ -2,9 +2,9 @@
 
 本地优先个人日历：**阶段 0–5 收官**（骨架 → 通知 → 事件/重复 → 课表 → **备份/ICS/桌面托盘与 Android 引导**）。
 
-**已有**：事件多提醒与重复、60 天通知窗口、学期/节次、Excel 课表导入（官方 SheetJS）、课表周视图、JSON 备份（覆盖/合并 + rebuildAll）、ICS（VEVENT+VALARM，不含课表）、Tauri 托盘保活/单实例/开机自启、国产 Android 提醒引导与 debug/release 文档。
+**已有**：事件多提醒与重复、60 天通知窗口、学期/节次、Excel 模板导入（官方 SheetJS）+ 教务 HTML/.xls 个人课表网格（rowspan/GBK）、课表周视图、JSON 备份（覆盖/合并 + rebuildAll）、ICS（VEVENT+VALARM，不含课表）、Tauri 托盘保活/单实例/开机自启、国产 Android 提醒引导与 debug/release 文档。
 
-**不做**：账号/云同步、合并单元格教务表、上课前提醒、停课调课、keystore 入库。
+**不做**：账号/云同步、上课前提醒、停课调课、keystore 入库、任意其它教务变体（仅支持个人课程表 HTML 网格导出）。
 
 规则见 [`AGENTS.md`](AGENTS.md)。真机见 [`docs/real-device-test.md`](docs/real-device-test.md)。
 
@@ -14,10 +14,11 @@
 npm install --save https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 ```
 
-## 课表周次语法
+## 课表导入
 
-- `1-16`、`1,3,5`、`1-8,10-16`（支持全角）
-- 单双**仅** `单周`/`单`、`双周`/`双`
+- **模板列**（可下载）：`课程名|星期|开始节|结束节|周次|教室|教师`（SheetJS 官方 tarball）
+- **教务 HTML/.xls**：个人课程表网格（表头 节次/周次|星期一…日，单元格 rowspan，charset=GBK）；勿用 SheetJS 读网格
+- 周次：`1-16`、`1,3,5`、`1-8,10-16`（全角可）；`单周`/`双周`；前缀式 `双6-8,15周`、`单1-16`（**拒**后缀 `1-16单`）
 - 导入开始/结束节须落在当前节次表；节次保存强制开始 &lt; 结束
 
 ## 备份与 ICS
@@ -58,7 +59,7 @@ npm run tauri:build
 ```
 src/domain/             纯函数 + vitest
 src/services/backup/    JSON / ICS + mock 往返测
-src/services/importer/  课表 Excel
+src/services/importer/  课表 Excel 模板 + HTML 网格
 src/services/scheduler/ 通知窗口重建
 src-tauri/              托盘 / 单实例 / 自启
 docs/                   OEM、Android release、Tauri build

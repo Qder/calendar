@@ -1,8 +1,12 @@
 import * as XLSX from 'xlsx'
 import { COURSE_TEMPLATE_HEADERS } from '@/domain/schemas'
+import {
+  isHtmlTimetableBuffer,
+  parseHtmlTimetableXls,
+} from './parseHtmlTimetable'
 
 export interface RawCourseSheetRow {
-  /** 1-based spreadsheet row (header is row 1). */
+  /** 1-based spreadsheet row (header is row 1); HTML grid uses sequential ids. */
   rowNumber: number
   cells: Record<string, unknown>
 }
@@ -24,11 +28,34 @@ function isRowEmpty(cells: Record<string, unknown>): boolean {
 }
 
 /**
- * Parse first sheet into raw row objects keyed by template headers.
- * Does **not** support merged-cell 教务表 layouts.
+ * Parse workbook / 教务 HTML 课表 into raw row objects keyed by template headers.
+ *
+ * - HTML / 「.xls」个人课程表网格（含 rowspan、GBK）：走 parseHtmlTimetableXls
+ * - 否则：官方 SheetJS 读模板列（课程名|星期|…）
  */
 export function parseCourseWorkbook(data: ArrayBuffer): RawCourseSheetRow[] {
-  const book = XLSX.read(data, { type: 'array', cellDates: false })
+  if (isHtmlTimetableBuffer(data)) {
+    try {
+      return parseHtmlTimetableXls(data)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      throw new Error(`教务 HTML 课表解析失败：${msg}`, { cause: e })
+    }
+  }
+  return parseTemplateWorkbook(data)
+}
+
+function parseTemplateWorkbook(data: ArrayBuffer): RawCourseSheetRow[] {
+  let book: XLSX.WorkBook
+  try {
+    book = XLSX.read(data, { type: 'array', cellDates: false })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    throw new Error(
+      `无法读取 Excel（若是教务导出的 HTML/.xls，请确认文件未损坏）。${msg}`,
+      { cause: e },
+    )
+  }
   const name = book.SheetNames[0]
   if (!name) throw new Error('工作簿没有工作表')
   const sheet = book.Sheets[name]
@@ -44,7 +71,9 @@ export function parseCourseWorkbook(data: ArrayBuffer): RawCourseSheetRow[] {
   for (const h of REQUIRED) {
     const idx = headerRow.findIndex((c) => c === h)
     if (idx < 0) {
-      throw new Error(`缺少列「${h}」。请使用模板列：${REQUIRED.join('|')}`)
+      throw new Error(
+        `缺少列「${h}」。请使用模板列：${REQUIRED.join('|')}；或导入教务「个人课程表」HTML/.xls 网格。`,
+      )
     }
     indexOf[h] = idx
   }

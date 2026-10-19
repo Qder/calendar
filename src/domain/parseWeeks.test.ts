@@ -25,6 +25,12 @@ describe('parseWeeks', () => {
     expect(parseWeeks('双', T)).toEqual([2, 4, 6, 8, 10, 12, 14, 16])
   })
 
+  it('prefix 双6-8,15周 / 单1-16', () => {
+    expect(parseWeeks('双6-8,15周', T)).toEqual([6, 8, 15])
+    expect(parseWeeks('单1-16', T)).toEqual([1, 3, 5, 7, 9, 11, 13, 15])
+    expect(parseWeeks('双周6-8,15', T)).toEqual([6, 8, 15])
+  })
+
   it('full-width digits and separators', () => {
     expect(parseWeeks('１－３，５', T)).toEqual([1, 2, 3, 5])
     expect(parseWeeks('1、3、5', T)).toEqual([1, 3, 5])
@@ -38,9 +44,10 @@ describe('parseWeeks', () => {
     expect(() => parseWeeks('  ', T)).toThrow(/空/)
   })
 
-  it('rejects illegal', () => {
+  it('rejects illegal and suffix 单双', () => {
     expect(() => parseWeeks('abc', T)).toThrow(/非法/)
     expect(() => parseWeeks('1-16单', T)).toThrow(/非法/)
+    expect(() => parseWeeks('1-16双', T)).toThrow(/非法/)
   })
 
   it('rejects over totalWeeks', () => {

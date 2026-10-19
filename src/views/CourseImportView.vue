@@ -19,8 +19,8 @@
       variant="tonal"
       class="mb-4"
     >
-      模板列：课程名|星期|开始节|结束节|周次|教室|教师。不支持合并单元格教务表。
-      周次：`1-16`、`1,3,5`、`1-8,10-16`、`单周`/`双周`（见 AGENTS.md）。
+      支持：① 模板列 课程名|星期|开始节|结束节|周次|教室|教师；② 教务「个人课程表」HTML/.xls 网格（含 rowspan、GBK）。
+      周次：`1-16`、`双6-8,15周`、`单1-16`、`单周`/`双周`（拒后缀 `1-16单`，见 AGENTS.md）。
     </v-alert>
 
     <v-alert
@@ -45,12 +45,12 @@
         :disabled="!semesterReady"
         @click="fileInput?.click()"
       >
-        选择 Excel
+        选择文件
       </v-btn>
       <input
         ref="fileInput"
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.html,text/html"
         class="d-none"
         @change="onFile"
       >
