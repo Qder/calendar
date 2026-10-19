@@ -48,8 +48,7 @@
     >
       <v-card
         variant="outlined"
-        color="surface"
-        class="pa-6 text-center"
+        class="bg-surface pa-6 text-center"
       >
         <v-icon
           icon="mdi-checkbox-marked-outline"
@@ -89,8 +88,7 @@
         </h2>
         <v-card
           variant="outlined"
-          color="surface"
-          class="home-group__card"
+          class="bg-surface home-group__card"
         >
           <v-list
             class="py-1"

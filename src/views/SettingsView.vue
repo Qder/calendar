@@ -19,8 +19,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-        class="mb-3"
+        class="bg-surface mb-3"
       >
         <v-card-title class="text-subtitle-1">
           默认提醒时刻
@@ -55,8 +54,7 @@
 
       <v-card
         variant="outlined"
-        color="surface"
-        class="mb-3"
+        class="bg-surface mb-3"
       >
         <v-card-title class="text-subtitle-1">
           通知权限
@@ -85,8 +83,7 @@
 
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="text-subtitle-1">
           收不到提醒？
         </v-card-title>
@@ -142,8 +139,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-        class="mb-3"
+        class="bg-surface mb-3"
       >
         <v-card-title class="text-subtitle-1">
           学期
@@ -187,8 +183,7 @@
 
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="d-flex align-center justify-space-between text-subtitle-1">
           <span>节次时间表</span>
           <v-btn
@@ -252,8 +247,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="text-subtitle-1">
           备份与导出
         </v-card-title>
@@ -307,8 +301,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="text-subtitle-1">
           主题
         </v-card-title>
@@ -357,8 +350,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="text-subtitle-1">
           开机自启
         </v-card-title>
@@ -388,8 +380,7 @@
       </h2>
       <v-card
         variant="outlined"
-        color="surface"
-        class="mb-3"
+        class="bg-surface mb-3"
       >
         <v-card-title class="text-subtitle-1">
           日历
@@ -406,8 +397,7 @@
 
       <v-card
         variant="outlined"
-        color="surface"
-      >
+       class="bg-surface">
         <v-card-title class="text-subtitle-1">
           开发者选项
         </v-card-title>
