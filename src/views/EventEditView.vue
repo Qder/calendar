@@ -1,190 +1,226 @@
 <template>
-  <v-container
-    class="py-4"
-    style="max-width: 640px"
+  <!-- 手机/平板：全高底部 sheet -->
+  <v-bottom-sheet
+    v-if="!isDesktop"
+    v-model="panelOpen"
+    fullscreen
+    :scrim="true"
+    class="event-edit-sheet"
   >
-    <div class="d-flex align-center mb-4">
-      <v-btn
-        icon="mdi-arrow-left"
-        variant="text"
-        :to="{ name: 'month' }"
-      />
-      <div class="text-h6 ms-2">
-        {{ isNew ? '新建事件' : '编辑事件（整系列）' }}
-      </div>
-    </div>
-
-    <v-alert
-      v-if="error"
-      type="error"
-      variant="tonal"
-      class="mb-4"
-      :text="error"
-    />
-
-    <v-alert
-      v-if="!isNew"
-      type="info"
-      variant="tonal"
-      class="mb-4"
-      text="修改与删除作用于整个重复系列，不支持「仅此一次」。"
-    />
-
-    <v-form @submit.prevent="onSave">
-      <v-text-field
-        v-model="title"
-        label="标题"
-        required
-        class="mb-2"
-      />
-      <v-text-field
-        v-model="date"
-        label="开始日期（系列锚点）"
-        type="date"
-        required
-        class="mb-2"
-      />
-      <v-select
-        v-model="recurrence"
-        :items="recurrenceItems"
-        item-title="title"
-        item-value="value"
-        label="重复"
-        class="mb-2"
-      />
-      <v-switch
-        v-model="hasTime"
-        label="指定时刻"
-        color="primary"
-        hide-details
-        class="mb-2"
-      />
-      <v-text-field
-        v-if="hasTime"
-        v-model="time"
-        label="时刻"
-        type="time"
-        class="mb-2"
-      />
-      <v-textarea
-        v-model="note"
-        label="备注"
-        rows="3"
-        class="mb-2"
-      />
-
-      <v-divider class="my-4" />
-      <div class="d-flex align-center justify-space-between mb-2">
-        <div class="text-subtitle-2">
-          提醒（可多条）
-        </div>
-        <v-btn
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-plus"
-          @click="addReminder"
-        >
-          添加
-        </v-btn>
-      </div>
-
-      <v-card
-        v-for="(r, idx) in reminders"
-        :key="idx"
-        variant="outlined"
-        class="mb-2 pa-3"
+    <v-card
+      class="event-edit-panel d-flex flex-column"
+      height="100%"
+      rounded="0"
+      :aria-label="heading"
+    >
+      <v-toolbar
+        density="comfortable"
+        color="surface"
+        class="border-b flex-shrink-0"
       >
-        <div class="d-flex align-center justify-space-between mb-2">
-          <span class="text-caption">提醒 {{ idx + 1 }}</span>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          aria-label="关闭"
+          class="touch-target"
+          @click="onCancel"
+        />
+        <v-toolbar-title class="text-subtitle-1">
+          {{ heading }}
+        </v-toolbar-title>
+      </v-toolbar>
+
+      <div class="event-edit-body flex-grow-1 overflow-y-auto">
+        <EventEditFormBody
+          v-if="!bootLoading"
+          v-model:title="title"
+          v-model:date="date"
+          v-model:all-day="allDay"
+          v-model:time="time"
+          v-model:note="note"
+          v-model:recurrence="recurrence"
+          v-model:selected-offsets="selectedOffsets"
+          v-model:custom-enabled="customEnabled"
+          v-model:custom-days="customDays"
+          v-model:remind-time="remindTime"
+          :is-new="isNew"
+          :error="error"
+          :recurrence-items="recurrenceItems"
+        />
+        <div
+          v-else
+          class="pa-4"
+          aria-busy="true"
+          aria-label="加载中"
+        >
+          <v-skeleton-loader type="article, actions" />
+        </div>
+      </div>
+
+      <div class="event-edit-footer flex-shrink-0 border-t pa-3">
+        <EventEditActions
+          :is-new="isNew"
+          :saving="saving"
+          :disabled="bootLoading"
+          @save="onSave"
+          @delete="askDelete"
+          @cancel="onCancel"
+        />
+      </div>
+    </v-card>
+  </v-bottom-sheet>
+
+  <!-- 桌面：居中对话框 -->
+  <v-dialog
+    v-else
+    v-model="panelOpen"
+    max-width="560"
+    persistent
+    scrollable
+    class="event-edit-dialog"
+  >
+    <v-card
+      class="event-edit-panel d-flex flex-column"
+      :aria-label="heading"
+    >
+      <v-toolbar
+        density="comfortable"
+        color="surface"
+        class="border-b flex-shrink-0"
+      >
+        <v-toolbar-title class="text-subtitle-1">
+          {{ heading }}
+        </v-toolbar-title>
+        <template #append>
           <v-btn
-            icon="mdi-delete-outline"
-            size="small"
+            icon="mdi-close"
             variant="text"
-            aria-label="删除提醒"
-            @click="reminders.splice(idx, 1)"
+            aria-label="关闭"
+            class="touch-target"
+            @click="onCancel"
           />
-        </div>
-        <v-text-field
-          v-model.number="r.daysBefore"
-          label="事件前 N 天"
-          type="number"
-          min="0"
-          max="365"
-          class="mb-2"
-          hide-details
-        />
-        <v-text-field
-          v-model="r.time"
-          label="提醒时刻"
-          type="time"
-          hide-details
-        />
-      </v-card>
-      <div
-        v-if="reminders.length === 0"
-        class="text-medium-emphasis text-body-2 mb-2"
-      >
-        未启用提醒（保存后不会调度通知）
-      </div>
+        </template>
+      </v-toolbar>
 
-      <div class="d-flex flex-wrap ga-2 mt-4">
-        <v-btn
-          type="submit"
-          color="primary"
-          variant="flat"
-          :loading="saving"
+      <v-card-text class="event-edit-body pa-0">
+        <EventEditFormBody
+          v-if="!bootLoading"
+          v-model:title="title"
+          v-model:date="date"
+          v-model:all-day="allDay"
+          v-model:time="time"
+          v-model:note="note"
+          v-model:recurrence="recurrence"
+          v-model:selected-offsets="selectedOffsets"
+          v-model:custom-enabled="customEnabled"
+          v-model:custom-days="customDays"
+          v-model:remind-time="remindTime"
+          :is-new="isNew"
+          :error="error"
+          :recurrence-items="recurrenceItems"
+        />
+        <div
+          v-else
+          class="pa-4"
+          aria-busy="true"
+          aria-label="加载中"
         >
-          保存
-        </v-btn>
-        <v-btn
-          v-if="!isNew"
-          color="error"
-          variant="outlined"
-          :loading="saving"
-          @click="onDelete"
-        >
-          删除整系列
-        </v-btn>
+          <v-skeleton-loader type="article, actions" />
+        </div>
+      </v-card-text>
+
+      <div class="event-edit-footer flex-shrink-0 border-t pa-3">
+        <EventEditActions
+          :is-new="isNew"
+          :saving="saving"
+          :disabled="bootLoading"
+          @save="onSave"
+          @delete="askDelete"
+          @cancel="onCancel"
+        />
+      </div>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog
+    v-model="deleteConfirmOpen"
+    max-width="400"
+    persistent
+  >
+    <v-card>
+      <v-card-title class="text-subtitle-1">
+        删除整系列？
+      </v-card-title>
+      <v-card-text>
+        确定删除整个事件系列及其全部提醒？此操作不可撤销。
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
         <v-btn
           variant="text"
-          :to="{ name: 'month' }"
+          class="touch-target"
+          aria-label="取消删除"
+          @click="deleteConfirmOpen = false"
         >
           取消
         </v-btn>
-      </div>
-    </v-form>
-  </v-container>
+        <v-btn
+          color="error"
+          variant="flat"
+          class="touch-target"
+          :loading="saving"
+          aria-label="确认删除整系列"
+          @click="onDeleteConfirmed"
+        >
+          删除
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
+import EventEditActions from '@/components/EventEditActions.vue'
+import EventEditFormBody from '@/components/EventEditFormBody.vue'
 import { todayYmd } from '@/domain/date'
 import type { RecurrenceFreq } from '@/domain/recurrence'
 import { useEventsStore } from '@/stores/events'
 import { useSettingsStore } from '@/stores/settings'
 
-interface ReminderDraft {
-  daysBefore: number
-  time: string
-}
+const PRESET_OFFSETS = [0, 1, 3, 7] as const
 
 const route = useRoute()
 const router = useRouter()
 const events = useEventsStore()
 const settings = useSettingsStore()
+const display = useDisplay()
 
+const isDesktop = computed(() => display.mdAndUp.value)
 const isNew = computed(() => route.name === 'event-new')
+const heading = computed(() =>
+  isNew.value ? '新建事件' : '编辑事件（整系列）',
+)
 
+const panelOpen = ref(true)
+const bootLoading = ref(true)
 const title = ref('')
 const date = ref(todayYmd())
-const hasTime = ref(false)
+const allDay = ref(true)
 const time = ref('09:00')
 const note = ref('')
 const recurrence = ref<RecurrenceFreq>('none')
-const reminders = ref<ReminderDraft[]>([])
+const selectedOffsets = ref<number[]>([1])
+const customEnabled = ref(false)
+const customDays = ref(2)
+/** 加载时多余的非预设 daysBefore（UI 只展示第一个自定义） */
+const extraCustomDays = ref<number[]>([])
+const remindTime = ref('09:00')
 const saving = ref(false)
 const error = ref('')
+const deleteConfirmOpen = ref(false)
 
 const recurrenceItems = [
   { title: '不重复', value: 'none' },
@@ -193,46 +229,132 @@ const recurrenceItems = [
   { title: '每年', value: 'yearly' },
 ]
 
-function addReminder(): void {
-  reminders.value.push({
-    daysBefore: 1,
-    time: settings.defaultRemindTime || '09:00',
-  })
+function isPreset(days: number): boolean {
+  return (PRESET_OFFSETS as readonly number[]).includes(days)
 }
 
-onMounted(async () => {
-  await settings.load()
-
-  if (typeof route.query.date === 'string' && route.query.date) {
-    date.value = route.query.date
+function applyRemindersFromRules(
+  rules: { daysBefore: number; time: string }[],
+): void {
+  if (rules.length === 0) {
+    selectedOffsets.value = []
+    customEnabled.value = false
+    customDays.value = 2
+    extraCustomDays.value = []
+    remindTime.value = settings.defaultRemindTime || '09:00'
+    return
   }
-
-  if (!isNew.value && typeof route.params.id === 'string') {
-    const ev = await events.load(route.params.id)
-    if (!ev) {
-      error.value = '事件不存在'
-      return
-    }
-    title.value = ev.title
-    date.value = ev.date
-    hasTime.value = Boolean(ev.time)
-    time.value = ev.time ?? '09:00'
-    note.value = ev.note ?? ''
-    recurrence.value = (ev.recurrence ?? 'none') as RecurrenceFreq
-    const rules = await events.loadRules(ev.id)
-    reminders.value = rules.map((r) => ({
-      daysBefore: r.daysBefore,
-      time: r.time,
-    }))
+  remindTime.value = rules[0]!.time
+  const presets = [
+    ...new Set(rules.map((r) => r.daysBefore).filter(isPreset)),
+  ].sort((a, b) => a - b)
+  const nonPreset = [
+    ...new Set(rules.map((r) => r.daysBefore).filter((d) => !isPreset(d))),
+  ]
+  selectedOffsets.value = presets
+  if (nonPreset.length > 0) {
+    customEnabled.value = true
+    customDays.value = nonPreset[0]!
+    extraCustomDays.value = nonPreset.slice(1)
   } else {
-    reminders.value = [
-      { daysBefore: 1, time: settings.defaultRemindTime || '09:00' },
-    ]
+    customEnabled.value = false
+    customDays.value = 2
+    extraCustomDays.value = []
+  }
+}
+
+function buildReminders(): { daysBefore: number; time: string }[] {
+  const t = remindTime.value || '09:00'
+  const out: { daysBefore: number; time: string }[] = []
+  const seen = new Set<number>()
+  for (const d of selectedOffsets.value) {
+    const n = Number(d)
+    if (!Number.isFinite(n) || n < 0 || n > 365 || seen.has(n)) continue
+    seen.add(n)
+    out.push({ daysBefore: n, time: t })
+  }
+  if (customEnabled.value) {
+    const n = Number(customDays.value)
+    if (Number.isFinite(n) && n >= 0 && n <= 365 && !seen.has(n)) {
+      seen.add(n)
+      out.push({ daysBefore: n, time: t })
+    }
+  }
+  for (const d of extraCustomDays.value) {
+    if (!seen.has(d) && d >= 0 && d <= 365) {
+      seen.add(d)
+      out.push({ daysBefore: d, time: t })
+    }
+  }
+  return out
+}
+
+watch([customEnabled, customDays], () => {
+  if (extraCustomDays.value.length) extraCustomDays.value = []
+})
+
+onMounted(async () => {
+  bootLoading.value = true
+  panelOpen.value = true
+  try {
+    await settings.load()
+    remindTime.value = settings.defaultRemindTime || '09:00'
+
+    if (typeof route.query.date === 'string' && route.query.date) {
+      date.value = route.query.date
+    }
+
+    if (!isNew.value && typeof route.params.id === 'string') {
+      const ev = await events.load(route.params.id)
+      if (!ev) {
+        error.value = '事件不存在'
+        return
+      }
+      title.value = ev.title
+      date.value = ev.date
+      allDay.value = !ev.time
+      time.value = ev.time ?? '09:00'
+      note.value = ev.note ?? ''
+      recurrence.value = (ev.recurrence ?? 'none') as RecurrenceFreq
+      const rules = await events.loadRules(ev.id)
+      applyRemindersFromRules(
+        rules.map((r) => ({ daysBefore: r.daysBefore, time: r.time })),
+      )
+    } else {
+      selectedOffsets.value = [1]
+      customEnabled.value = false
+      extraCustomDays.value = []
+      remindTime.value = settings.defaultRemindTime || '09:00'
+    }
+  } finally {
+    bootLoading.value = false
   }
 })
 
+watch(panelOpen, (open) => {
+  if (!open && !saving.value && !deleteConfirmOpen.value) {
+    void leave()
+  }
+})
+
+async function leave(): Promise<void> {
+  if (globalThis.history.length > 1) {
+    router.back()
+  } else {
+    await router.push({ name: 'month' })
+  }
+}
+
+function onCancel(): void {
+  panelOpen.value = false
+}
+
 async function onSave(): Promise<void> {
   error.value = ''
+  if (!title.value.trim()) {
+    error.value = '请填写标题'
+    return
+  }
   saving.value = true
   try {
     const id = isNew.value ? undefined : String(route.params.id)
@@ -240,16 +362,14 @@ async function onSave(): Promise<void> {
       {
         title: title.value.trim(),
         date: date.value,
-        time: hasTime.value ? time.value : null,
+        time: allDay.value ? null : time.value,
         note: note.value,
         recurrence: recurrence.value,
-        reminders: reminders.value.map((r) => ({
-          daysBefore: Number(r.daysBefore),
-          time: r.time,
-        })),
+        reminders: buildReminders(),
       },
       id,
     )
+    panelOpen.value = false
     await router.push({ name: 'month' })
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
@@ -258,17 +378,44 @@ async function onSave(): Promise<void> {
   }
 }
 
-async function onDelete(): Promise<void> {
+function askDelete(): void {
   if (isNew.value) return
-  if (!globalThis.confirm('确定删除整个事件系列及其全部提醒？')) return
+  deleteConfirmOpen.value = true
+}
+
+async function onDeleteConfirmed(): Promise<void> {
+  if (isNew.value) return
   saving.value = true
   try {
     await events.remove(String(route.params.id))
+    deleteConfirmOpen.value = false
+    panelOpen.value = false
     await router.push({ name: 'month' })
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
+    deleteConfirmOpen.value = false
   } finally {
     saving.value = false
   }
 }
 </script>
+
+<style scoped>
+.event-edit-body {
+  padding: 16px;
+  min-height: 0;
+}
+
+.event-edit-footer {
+  background: rgb(var(--v-theme-surface));
+}
+
+.touch-target {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+
+.event-edit-panel {
+  max-height: 100%;
+}
+</style>
