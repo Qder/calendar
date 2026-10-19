@@ -214,6 +214,12 @@
         </button>
       </div>
     </div>
+    <p
+      v-if="semesterReady && periods.length"
+      class="week-scroll-hint text-caption text-medium-emphasis"
+    >
+      左右滑动查看周五至周日
+    </p>
   </div>
 </template>
 
@@ -251,7 +257,7 @@ const showThisWeekBtn = computed(
 )
 
 const gridStyle = computed(() => ({
-  gridTemplateColumns: '76px repeat(7, minmax(72px, 1fr))',
+  gridTemplateColumns: '96px repeat(7, minmax(72px, 1fr))',
   gridTemplateRows: `auto repeat(${periods.value.length}, minmax(52px, auto))`,
 }))
 
@@ -350,8 +356,12 @@ watch(
 <style scoped>
 .week-page {
   padding: 16px;
-  max-width: 1100px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1200px;
   margin-inline: auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .week-header {
@@ -409,16 +419,25 @@ watch(
   margin-inline-start: 4px;
 }
 
+.week-scroll-hint {
+  margin: 6px 4px 0;
+}
+
 .week-grid-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  /* 提示右侧还有天可滑 */
+  padding-bottom: 4px;
+  margin-inline: 0;
 }
 
 .week-grid {
   display: grid;
   gap: 2px;
   position: relative;
-  min-width: 640px;
+  /* 76→96 时间列 + 7×72 */
+  min-width: 660px;
 }
 
 .corner,
@@ -429,6 +448,16 @@ watch(
   padding: 4px;
   min-height: 52px;
   background: rgb(var(--v-theme-surface));
+}
+
+.corner,
+.period-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 96px;
+  box-sizing: border-box;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
 }
 
 .day-head {

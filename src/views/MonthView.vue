@@ -488,9 +488,13 @@ onMounted(async () => {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   max-width: 720px;
   margin-inline: auto;
   box-sizing: border-box;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .month-page--desktop {
@@ -520,6 +524,10 @@ onMounted(async () => {
   flex-wrap: nowrap;
   gap: 2px;
   margin-bottom: 12px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline-end: env(safe-area-inset-right, 0px);
 }
 
 .month-header__nav {
@@ -528,18 +536,20 @@ onMounted(async () => {
 }
 
 .month-header__title {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 4px 8px;
+  padding: 4px 4px;
   border: none;
   border-radius: var(--radius-control);
   background: transparent;
   color: rgb(var(--v-theme-on-background));
   cursor: pointer;
   font: inherit;
+  overflow: hidden;
 }
 
 .month-header__title:hover {
@@ -547,17 +557,22 @@ onMounted(async () => {
 }
 
 .month-header__ym {
-  font-size: clamp(1.15rem, 4.5vw, 1.5rem);
+  font-size: clamp(1rem, 3.8vw, 1.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .month-header__today {
   min-height: 44px;
-  margin-inline-start: 4px;
+  margin-inline-start: 2px;
+  flex: 0 0 auto;
   flex-shrink: 0;
+  max-width: none;
 }
 
 .weekday-row {

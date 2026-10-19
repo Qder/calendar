@@ -17,6 +17,7 @@ body,
   font-family: var(--app-font);
   background: rgb(var(--v-theme-background));
   color: rgb(var(--v-theme-on-background));
+  overflow-x: hidden;
 }
 
 .v-application {
@@ -70,12 +71,16 @@ body,
 /* 底栏占位，避免内容被遮挡 */
 .app-main--with-bottom-nav {
   padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .app-shell-fab {
   position: fixed !important;
-  right: 16px;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   z-index: 1005;
   min-width: 56px !important;
   min-height: 56px !important;
