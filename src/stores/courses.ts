@@ -81,6 +81,18 @@ export const useCoursesStore = defineStore('courses', () => {
     return items.value.filter((c) => c.weeks.includes(weekIndex))
   }
 
+  /**
+   * Read-only: courses meeting on a calendar day.
+   * weekIndex null (outside semester) → empty.
+   */
+  function meetingOn(weekIndex: number | null, weekday: number): CourseRow[] {
+    if (weekIndex == null) return []
+    return items.value
+      .filter((c) => c.weekday === weekday && c.weeks.includes(weekIndex))
+      .slice()
+      .sort((a, b) => a.startPeriod - b.startPeriod)
+  }
+
   return {
     items,
     loading,
@@ -90,5 +102,6 @@ export const useCoursesStore = defineStore('courses', () => {
     importOkRows,
     remove,
     inWeek,
+    meetingOn,
   }
 })

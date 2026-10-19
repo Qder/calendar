@@ -1,0 +1,30 @@
+[
+  {
+    "name": "s2-phone-light",
+    "width": 390,
+    "height": 844,
+    "mode": "light",
+    "file": "docs/ui-screenshots/s2-phone-light.png"
+  },
+  {
+    "name": "s2-phone-dark",
+    "width": 390,
+    "height": 844,
+    "mode": "dark",
+    "file": "docs/ui-screenshots/s2-phone-dark.png"
+  },
+  {
+    "name": "s2-desktop-light",
+    "width": 1440,
+    "height": 900,
+    "mode": "light",
+    "file": "docs/ui-screenshots/s2-desktop-light.png"
+  },
+  {
+    "name": "s2-desktop-dark",
+    "width": 1440,
+    "height": 900,
+    "mode": "dark",
+    "file": "docs/ui-screenshots/s2-desktop-dark.png"
+  }
+]
