@@ -29,3 +29,23 @@ export function courseColorForName(name: string): CourseColor {
   const idx = hashCourseName(name) % COURSE_COLOR_PALETTE.length
   return COURSE_COLOR_PALETTE[idx]!
 }
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '')
+  return {
+    r: Number.parseInt(h.slice(0, 2), 16),
+    g: Number.parseInt(h.slice(2, 4), 16),
+    b: Number.parseInt(h.slice(4, 6), 16),
+  }
+}
+
+/** 柔和底色（浅/深主题皆可读，配合左侧色条） */
+export function courseSoftBackground(name: string, alpha = 0.28): string {
+  const { r, g, b } = hexToRgb(courseColorForName(name))
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/** 左侧强调条 / 胶囊实色 */
+export function courseAccent(name: string): string {
+  return courseColorForName(name)
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "s4-phone-light",
+    "width": 390,
+    "height": 844,
+    "mode": "light",
+    "file": "docs/ui-screenshots/s4-phone-light.png"
+  },
+  {
+    "name": "s4-phone-dark",
+    "width": 390,
+    "height": 844,
+    "mode": "dark",
+    "file": "docs/ui-screenshots/s4-phone-dark.png"
+  },
+  {
+    "name": "s4-desktop-light",
+    "width": 1440,
+    "height": 900,
+    "mode": "light",
+    "file": "docs/ui-screenshots/s4-desktop-light.png"
+  },
+  {
+    "name": "s4-desktop-dark",
+    "width": 1440,
+    "height": 900,
+    "mode": "dark",
+    "file": "docs/ui-screenshots/s4-desktop-dark.png"
+  }
+]
