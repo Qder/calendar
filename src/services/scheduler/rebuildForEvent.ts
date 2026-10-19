@@ -4,12 +4,18 @@ import {
   putRule,
 } from '@/db/repos/reminderRules'
 import {
+  deleteScheduledById,
   deleteScheduledForEvent,
   insertScheduled,
 } from '@/db/repos/scheduledNotifications'
 import { computeTriggerAt } from '@/domain/reminders'
 import type { CalendarEvent, ReminderRule } from '@/domain/schemas'
 import { getNotificationService } from '@/services/notification'
+
+function reminderBody(daysBefore: number, eventDate: string): string {
+  if (daysBefore === 0) return `今天 · ${eventDate}`
+  return `提前 ${daysBefore} 天 · ${eventDate}`
+}
 
 /**
  * Cancel every OS notification + DB row for an event, then reschedule
@@ -55,13 +61,14 @@ export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
       await svc.schedule({
         id: notificationId,
         title: event.title,
-        body: rule.daysBefore === 0
-          ? `今天 · ${event.date}`
-          : `${rule.daysBefore} 天后 · ${event.date}`,
+        body: reminderBody(rule.daysBefore, event.date),
         triggerAt,
       })
     } catch (err) {
-      console.warn('[scheduler] schedule failed', notificationId, err)
+      // Avoid orphan DB rows when the OS schedule fails.
+      await deleteScheduledById(notificationId)
+      console.warn('[scheduler] schedule failed, rolled back row', notificationId, err)
+      throw err
     }
   }
 }

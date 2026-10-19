@@ -20,6 +20,10 @@ export async function insertScheduled(row: {
   return id as number
 }
 
+export async function deleteScheduledById(id: number): Promise<void> {
+  await db.scheduled_notifications.delete(id)
+}
+
 export async function deleteScheduledForEvent(eventId: string): Promise<number[]> {
   const rows = await listScheduledForEvent(eventId)
   const ids = rows.map((r) => r.id)
