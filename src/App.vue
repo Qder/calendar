@@ -5,7 +5,14 @@
       density="comfortable"
       flat
     >
-      <v-app-bar-title>日历 · 通知验证</v-app-bar-title>
+      <v-app-bar-title>
+        <router-link
+          to="/"
+          class="text-white text-decoration-none"
+        >
+          日历
+        </router-link>
+      </v-app-bar-title>
     </v-app-bar>
     <v-main>
       <router-view />
