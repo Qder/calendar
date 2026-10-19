@@ -236,11 +236,50 @@
       </v-card-text>
     </v-card>
 
+    <v-card
+      variant="outlined"
+      class="mb-4"
+    >
+      <v-card-title>外观</v-card-title>
+      <v-card-text>
+        <p class="text-body-2 mb-3">
+          浅色 / 深色 / 跟随系统。完整设置分组将在后续步骤整理。
+        </p>
+        <v-btn-toggle
+          v-model="themeMode"
+          color="primary"
+          rounded="lg"
+          group
+          mandatory
+          @update:model-value="onThemeMode"
+        >
+          <v-btn
+            value="system"
+            variant="outlined"
+          >
+            跟随系统
+          </v-btn>
+          <v-btn
+            value="light"
+            variant="outlined"
+          >
+            浅色
+          </v-btn>
+          <v-btn
+            value="dark"
+            variant="outlined"
+          >
+            深色
+          </v-btn>
+        </v-btn-toggle>
+      </v-card-text>
+    </v-card>
+
     <v-card variant="outlined">
       <v-card-title>开发者选项</v-card-title>
       <v-card-text>
         <p class="text-body-2 mb-3">
-          默认关闭。开启后显示通知调试页入口（顶栏虫子图标）。
+          默认关闭。开启后可进入通知调试页（不在主导航展示）。
         </p>
         <v-switch
           v-model="devOn"
@@ -248,9 +287,18 @@
           label="启用开发者选项"
           @update:model-value="onToggleDev"
         />
+        <v-btn
+          v-if="devOn"
+          class="mt-2"
+          variant="tonal"
+          color="primary"
+          :to="{ name: 'debug-notifications' }"
+        >
+          打开通知调试
+        </v-btn>
         <div
           v-if="devMsg"
-          class="text-caption"
+          class="text-caption mt-2"
         >
           {{ devMsg }}
         </div>
@@ -260,7 +308,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useTheme } from 'vuetify'
+import {
+  readThemeMode,
+  resolveThemeName,
+  writeThemeMode,
+  type ThemeMode,
+} from '@/components/themeMode'
 import type { PeriodRow } from '@/domain/schemas'
 import {
   getAutostartEnabled,
@@ -276,6 +331,21 @@ import { useSettingsStore } from '@/stores/settings'
 
 const settings = useSettingsStore()
 const semesterStore = useSemesterStore()
+const theme = useTheme()
+const themeMode = ref<ThemeMode>(readThemeMode())
+
+function applyThemeFromMode(): void {
+  theme.change(resolveThemeName(themeMode.value))
+}
+
+function onThemeMode(v: unknown): void {
+  if (v !== 'system' && v !== 'light' && v !== 'dark') return
+  themeMode.value = v
+  writeThemeMode(v)
+  applyThemeFromMode()
+}
+
+watch(themeMode, () => applyThemeFromMode())
 
 const time = ref('09:00')
 const savingRemind = ref(false)
@@ -304,6 +374,8 @@ const devMsg = ref('')
 
 onMounted(async () => {
   await settings.load()
+  themeMode.value = readThemeMode()
+  applyThemeFromMode()
   time.value = settings.defaultRemindTime
   devOn.value = settings.developerMode
   await semesterStore.load()
@@ -396,7 +468,7 @@ async function onToggleDev(v: boolean | null): Promise<void> {
   const on = Boolean(v)
   try {
     await settings.saveDeveloperMode(on)
-    devMsg.value = on ? '已开启：顶栏将显示调试入口' : '已关闭开发者选项'
+    devMsg.value = on ? '已开启：可通过下方入口进入调试页' : '已关闭开发者选项'
   } catch (err) {
     devOn.value = !on
     devMsg.value = err instanceof Error ? err.message : String(err)

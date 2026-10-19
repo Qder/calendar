@@ -9,6 +9,8 @@ export default tseslint.config(
     'android/**',
     'src-tauri/target/**',
     'node_modules/**',
+    'scripts/**',
+    'docs/ui-screenshots/**',
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,

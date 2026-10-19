@@ -1,0 +1,107 @@
+/* 全局视觉基线：字体、圆角 token、动效、4px 栅格辅助 */
+:root {
+  --app-font: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --radius-card: 16px;
+  --radius-control: 12px;
+  --radius-tag: 8px;
+  --space-unit: 4px;
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  font-family: var(--app-font);
+  background: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-background));
+}
+
+.v-application {
+  font-family: var(--app-font) !important;
+}
+
+.v-card {
+  border-radius: var(--radius-card) !important;
+}
+
+.v-btn {
+  border-radius: var(--radius-control) !important;
+}
+
+.v-btn--icon {
+  border-radius: 9999px !important;
+}
+
+.v-chip {
+  border-radius: var(--radius-tag) !important;
+}
+
+.tabular-nums,
+.day-num,
+.period-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 壳层过渡；遵守系统减弱动效 */
+.app-shell-nav,
+.app-shell-fab,
+.app-shell-main {
+  transition:
+    background-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease,
+    transform var(--motion-fast) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 底栏占位，避免内容被遮挡 */
+.app-main--with-bottom-nav {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+
+.app-shell-fab {
+  position: fixed !important;
+  right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 1005;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 9999px !important;
+}
+
+.app-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-side-nav .v-list-item {
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  margin-inline: 8px;
+}
+
+.border-e {
+  border-inline-end: 1px solid rgb(var(--v-theme-outline));
+}
+
+.border-b {
+  border-bottom: 1px solid rgb(var(--v-theme-outline));
+}
+
+.border-t {
+  border-top: 1px solid rgb(var(--v-theme-outline));
+}
