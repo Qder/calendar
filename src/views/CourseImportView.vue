@@ -68,6 +68,24 @@
       <div class="text-subtitle-2 mb-2">
         预览：{{ okCount }} 行可用 / {{ preview.length }} 行
       </div>
+      <v-alert
+        v-if="errCount > 0 && okCount > 0"
+        type="warning"
+        variant="tonal"
+        class="mb-3"
+        density="compact"
+      >
+        将跳过 {{ errCount }} 行错误，仅提交 {{ okCount }} 行 OK。
+      </v-alert>
+      <v-alert
+        v-else-if="errCount > 0 && okCount === 0"
+        type="error"
+        variant="tonal"
+        class="mb-3"
+        density="compact"
+      >
+        全部 {{ errCount }} 行均有错误，无法导入。
+      </v-alert>
       <v-table
         density="compact"
         class="mb-4"
@@ -165,6 +183,7 @@ const commitMsg = ref('')
 
 const semesterReady = computed(() => Boolean(semesterStore.semester))
 const okCount = computed(() => preview.value.filter((p) => p.ok).length)
+const errCount = computed(() => preview.value.filter((p) => !p.ok).length)
 
 onMounted(async () => {
   await semesterStore.load()
@@ -192,7 +211,12 @@ async function onFile(ev: { target: unknown }): Promise<void> {
   try {
     const buf = await file.arrayBuffer()
     const raw = parseCourseWorkbook(buf)
-    preview.value = previewCourseRows(raw, semesterStore.semester.totalWeeks)
+    const periodIndices = semesterStore.periods.map((p) => p.index)
+    preview.value = previewCourseRows(
+      raw,
+      semesterStore.semester.totalWeeks,
+      periodIndices,
+    )
   } catch (err) {
     parseError.value = err instanceof Error ? err.message : String(err)
   }

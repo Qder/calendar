@@ -31,16 +31,23 @@ function toInt(v: unknown, label: string): number {
   return Number(s)
 }
 
-/** Validate each raw row with zod + parseWeeks; collect errors for red UI. */
+/**
+ * Validate each raw row with zod + parseWeeks + period-table membership.
+ * `periodIndices` = current节次表 indexes; start/end must both be members.
+ */
 export function previewCourseRows(
   rows: RawCourseSheetRow[],
   totalWeeks: number,
+  periodIndices: Iterable<number>,
 ): PreviewRow[] {
+  const indices = periodIndices instanceof Set ? periodIndices : new Set(periodIndices)
   return rows.map((row) => {
     const errors: string[] = []
     let weekday = 1
     let startPeriod = 1
     let endPeriod = 1
+    let startOk = false
+    let endOk = false
     try {
       weekday = parseWeekdayCell(row.cells['星期'])
     } catch (e) {
@@ -48,13 +55,22 @@ export function previewCourseRows(
     }
     try {
       startPeriod = toInt(row.cells['开始节'], '开始节')
+      startOk = true
     } catch (e) {
       errors.push(e instanceof Error ? e.message : String(e))
     }
     try {
       endPeriod = toInt(row.cells['结束节'], '结束节')
+      endOk = true
     } catch (e) {
       errors.push(e instanceof Error ? e.message : String(e))
+    }
+
+    if (startOk && !indices.has(startPeriod)) {
+      errors.push(`开始节 ${startPeriod} 不在当前节次表内`)
+    }
+    if (endOk && !indices.has(endPeriod)) {
+      errors.push(`结束节 ${endPeriod} 不在当前节次表内`)
     }
 
     const candidate = {

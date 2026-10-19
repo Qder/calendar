@@ -89,12 +89,17 @@ export const SemesterSchema = z.object({
 })
 export type SemesterRow = z.infer<typeof SemesterSchema>
 
-export const PeriodSchema = z.object({
-  index: z.number().int().min(1).max(24),
-  start: hm,
-  end: hm,
-  label: z.string().max(40).optional(),
-})
+export const PeriodSchema = z
+  .object({
+    index: z.number().int().min(1).max(24),
+    start: hm,
+    end: hm,
+    label: z.string().max(40).optional(),
+  })
+  .refine((r) => r.start < r.end, {
+    message: '开始时刻须早于结束时刻',
+    path: ['end'],
+  })
 export type PeriodRow = z.infer<typeof PeriodSchema>
 
 /** Template / import column headers (fixed order). */

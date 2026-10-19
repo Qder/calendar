@@ -29,3 +29,25 @@ export function periodByIndex(
 ): PeriodSlot | undefined {
   return periods.find((p) => p.index === index)
 }
+
+/** Lexicographic HH:mm compare; both must be zero-padded. */
+export function isHmBefore(start: string, end: string): boolean {
+  return /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end) && start < end
+}
+
+/** Reject any slot whose start is not strictly before end. */
+export function assertPeriodTimes(periods: PeriodSlot[]): void {
+  for (const p of periods) {
+    if (!/^\d{2}:\d{2}$/.test(p.start) || !/^\d{2}:\d{2}$/.test(p.end)) {
+      throw new Error(`第${p.index}节时间格式须为 HH:mm`)
+    }
+    if (!isHmBefore(p.start, p.end)) {
+      throw new Error(`第${p.index}节开始时刻须早于结束时刻（${p.start} < ${p.end}）`)
+    }
+  }
+}
+
+export function periodIndexSet(periods: PeriodSlot[]): Set<number> {
+  return new Set(periods.map((p) => p.index))
+}
+

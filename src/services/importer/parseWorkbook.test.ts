@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_PERIODS } from '@/domain/periods'
 import { COURSE_TEMPLATE_HEADERS } from '@/domain/schemas'
 import { commitCoursePreview } from './commit'
 import { parseCourseWorkbook } from './parseWorkbook'
@@ -13,6 +14,7 @@ function bookFromAoa(aoa: unknown[][]): ArrayBuffer {
 }
 
 const HDR = [...COURSE_TEMPLATE_HEADERS]
+const PERIOD_IDX = DEFAULT_PERIODS.map((p) => p.index)
 
 describe('parseCourseWorkbook + preview fixtures', () => {
   it('normal rows', () => {
@@ -23,7 +25,7 @@ describe('parseCourseWorkbook + preview fixtures', () => {
     ])
     const raw = parseCourseWorkbook(buf)
     expect(raw).toHaveLength(2)
-    const preview = previewCourseRows(raw, 16)
+    const preview = previewCourseRows(raw, 16, PERIOD_IDX)
     expect(preview.every((p) => p.ok)).toBe(true)
     if (preview[0].ok && preview[1].ok) {
       expect(preview[0].weeks).toEqual([1, 2])
@@ -46,7 +48,7 @@ describe('parseCourseWorkbook + preview fixtures', () => {
       ['高数', 1, 1, 99, '1-2', '', ''],
       ['英语', 1, 1, 2, '1-20', '', ''],
     ])
-    const preview = previewCourseRows(parseCourseWorkbook(buf), 16)
+    const preview = previewCourseRows(parseCourseWorkbook(buf), 16, PERIOD_IDX)
     expect(preview[0].ok).toBe(false)
     expect(preview[1].ok).toBe(false)
     if (!preview[1].ok) {
@@ -62,8 +64,25 @@ describe('parseCourseWorkbook + preview fixtures', () => {
     ])
     const raw = parseCourseWorkbook(buf)
     expect(raw).toHaveLength(1)
-    const preview = previewCourseRows(raw, 16)
+    const preview = previewCourseRows(raw, 16, PERIOD_IDX)
     expect(preview[0].ok).toBe(false)
+  })
+
+
+  it('period not in current table', () => {
+    const buf = bookFromAoa([
+      HDR,
+      ['高数', 1, 1, 2, '1-2', '', ''],
+      ['实验', 1, 13, 13, '1', '', ''],
+    ])
+    // Only periods 1–10 exist
+    const idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    const preview = previewCourseRows(parseCourseWorkbook(buf), 16, idx)
+    expect(preview[0].ok).toBe(true)
+    expect(preview[1].ok).toBe(false)
+    if (!preview[1].ok) {
+      expect(preview[1].errors.some((e) => /不在当前节次表/.test(e))).toBe(true)
+    }
   })
 
   it('commit overwrite vs append counts', async () => {
@@ -74,6 +93,7 @@ describe('parseCourseWorkbook + preview fixtures', () => {
         bookFromAoa([HDR, ['A', 1, 1, 1, '1', '', '']]),
       ),
       16,
+      PERIOD_IDX,
     ).filter((p): p is Extract<typeof p, { ok: true }> => p.ok)
     expect(ok).toHaveLength(1)
     // commit requires Dexie; exercised in browser. Shape check:

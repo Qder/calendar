@@ -1,6 +1,6 @@
 import { db } from '@/db'
-import { DEFAULT_PERIODS } from '@/domain/periods'
-import type { PeriodRow } from '@/domain/schemas'
+import { assertPeriodTimes, DEFAULT_PERIODS } from '@/domain/periods'
+import { PeriodSchema, type PeriodRow } from '@/domain/schemas'
 
 export async function listPeriods(): Promise<PeriodRow[]> {
   const rows = await db.periods.orderBy('index').toArray()
@@ -9,9 +9,18 @@ export async function listPeriods(): Promise<PeriodRow[]> {
 }
 
 export async function savePeriods(periods: PeriodRow[]): Promise<void> {
+  assertPeriodTimes(periods)
+  const parsed = periods.map((p, i) => {
+    const r = PeriodSchema.safeParse(p)
+    if (!r.success) {
+      const msg = r.error.issues.map((x) => x.message).join('；')
+      throw new Error(`第${p.index ?? i + 1}节：${msg}`)
+    }
+    return r.data
+  })
   await db.transaction('rw', db.periods, async () => {
     await db.periods.clear()
-    await db.periods.bulkPut(periods)
+    await db.periods.bulkPut(parsed)
   })
 }
 
