@@ -5,6 +5,10 @@ export async function listCourses(): Promise<CourseRow[]> {
   return db.courses.orderBy('name').toArray()
 }
 
+export async function getCourse(id: string): Promise<CourseRow | undefined> {
+  return db.courses.get(id)
+}
+
 export async function putCourse(course: CourseRow): Promise<void> {
   await db.courses.put(plainCourse(course))
 }

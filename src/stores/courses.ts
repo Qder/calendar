@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { deleteCourse, listCourses } from '@/db/repos/courses'
+import {
+  deleteCourse,
+  getCourse,
+  listCourses,
+  putCourse,
+} from '@/db/repos/courses'
+import {
+  buildCourseRow,
+  type CourseDraftInput,
+} from '@/domain/courseDraft'
 import type { CourseRow } from '@/domain/schemas'
 import {
   commitCoursePreview,
@@ -19,6 +28,38 @@ export const useCoursesStore = defineStore('courses', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function load(id: string): Promise<CourseRow | undefined> {
+    return getCourse(id)
+  }
+
+  /**
+   * Create or update a course from form draft.
+   * Always writes a plain POJO (weeks as real Array).
+   */
+  async function save(
+    input: CourseDraftInput,
+    opts: {
+      totalWeeks: number
+      periodIndices: Iterable<number>
+      id?: string
+    },
+  ): Promise<CourseRow> {
+    let createdAt: number | undefined
+    if (opts.id) {
+      const existing = await getCourse(opts.id)
+      createdAt = existing?.createdAt
+    }
+    const row = buildCourseRow(input, {
+      totalWeeks: opts.totalWeeks,
+      periodIndices: opts.periodIndices,
+      id: opts.id,
+      createdAt,
+    })
+    await putCourse(row)
+    await refresh()
+    return row
   }
 
   async function importOkRows(
@@ -44,6 +85,8 @@ export const useCoursesStore = defineStore('courses', () => {
     items,
     loading,
     refresh,
+    load,
+    save,
     importOkRows,
     remove,
     inWeek,

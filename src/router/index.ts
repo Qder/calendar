@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { getDeveloperMode } from '@/db/repos/settings'
 import BackupView from '@/views/BackupView.vue'
+import CourseEditView from '@/views/CourseEditView.vue'
 import CourseImportView from '@/views/CourseImportView.vue'
 import DebugNotificationView from '@/views/DebugNotificationView.vue'
 import EventEditView from '@/views/EventEditView.vue'
@@ -26,6 +27,16 @@ const router = createRouter({
       path: '/courses/import',
       name: 'course-import',
       component: CourseImportView,
+    },
+    {
+      path: '/courses/new',
+      name: 'course-new',
+      component: CourseEditView,
+    },
+    {
+      path: '/courses/:id',
+      name: 'course-edit',
+      component: CourseEditView,
     },
     {
       path: '/home',
