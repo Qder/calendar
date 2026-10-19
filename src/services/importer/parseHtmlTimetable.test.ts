@@ -44,7 +44,7 @@ describe('parseHtmlTimetableXls (Yang fixture)', () => {
 
   it('parses grid: 连堂 rowspan、双课 ;;、双6-8,15', () => {
     const rows = parseHtmlTimetableXls(data)
-    expect(rows.length).toBeGreaterThanOrEqual(18)
+    expect(rows.length).toBe(20)
 
     const db = rows.find(
       (r) =>
