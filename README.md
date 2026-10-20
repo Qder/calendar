@@ -38,6 +38,10 @@ npm install --save https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 - Debug / Release（含 keystore 勿入库）：[`docs/android-release.md`](docs/android-release.md)
 - **提醒强度（N-reminder-kind）**：创建/编辑事项选「闹钟式强提醒」或「仅弹窗通知」（默认）；Android 分两个通知渠道。系统闹钟入口已取消。
 
+## 使用说明
+
+- 设置 → **打开使用说明**，或 `/#/help`；顶栏可搜索标题/关键词/正文。
+
 ## 脚本
 
 ```bash
@@ -50,7 +54,7 @@ npm run tauri:dev
 npm run tauri:build
 ```
 
-- 月 `/#/` · 课表 `/#/week` · 导入 `/#/courses/import` · 设置 `/#/settings` · 备份 `/#/backup`
+- 月 `/#/` · 课表 `/#/week` · 导入 `/#/courses/import` · 设置 `/#/settings` · 使用说明 `/#/help` · 备份 `/#/backup`
 - 通知调试页默认隐藏；设置 → 开发者选项开启后可见
 
 **Android / Windows 真机：未验证。**

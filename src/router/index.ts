@@ -5,6 +5,7 @@ import CourseEditView from '@/views/CourseEditView.vue'
 import CourseImportView from '@/views/CourseImportView.vue'
 import DebugNotificationView from '@/views/DebugNotificationView.vue'
 import EventEditView from '@/views/EventEditView.vue'
+import HelpView from '@/views/HelpView.vue'
 import HomeView from '@/views/HomeView.vue'
 import MonthView from '@/views/MonthView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -57,6 +58,11 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+    },
+    {
+      path: '/help',
+      name: 'help',
+      component: HelpView,
     },
     {
       path: '/backup',

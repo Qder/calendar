@@ -12,6 +12,33 @@
       </h1>
     </header>
 
+    <!-- 帮助 -->
+    <section class="mb-4">
+      <h2 class="settings-section__title">
+        帮助
+      </h2>
+      <v-card
+        variant="outlined"
+        class="bg-surface"
+      >
+        <v-card-title class="text-subtitle-1">
+          使用说明
+        </v-card-title>
+        <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            月周视图、事项提醒、课表导入、备份与通知权限等，可在页内搜索。
+          </p>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            :to="{ name: 'help' }"
+          >
+            打开使用说明
+          </v-btn>
+        </v-card-text>
+      </v-card>
+    </section>
+
     <!-- 提醒 -->
     <section class="mb-4">
       <h2 class="settings-section__title">

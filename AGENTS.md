@@ -28,6 +28,7 @@
 - `WINDOW_DAYS=60`、`MAX_SCHEDULED=64`；展开上界含 max(daysBefore)；resume 防抖。
 - 改删整系列。调试页默认关（开发者选项）。
 - **N-reminder-kind**：事项字段 `reminderKind: alarm|banner`（默认 banner）；Android 双渠道；不跳系统时钟。N-sys-alarm 入口已下架。
+- **N-help**：设置 → 使用说明（`/#/help`），静态分区 + 本地子串搜索。
 
 ## 协作
 
