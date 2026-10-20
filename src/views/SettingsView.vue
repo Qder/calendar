@@ -39,6 +39,33 @@
       </v-card>
     </section>
 
+    <!-- 今天吃什么 -->
+    <section class="mb-4">
+      <h2 class="settings-section__title">
+        今天吃什么
+      </h2>
+      <v-card
+        variant="outlined"
+        class="bg-surface"
+      >
+        <v-card-title class="text-subtitle-1">
+          自建食物库
+        </v-card-title>
+        <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            自己添加食物，再随机抽一个（本地存储，随备份导出）。
+          </p>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            :to="{ name: 'food' }"
+          >
+            打开「今天吃什么」
+          </v-btn>
+        </v-card-text>
+      </v-card>
+    </section>
+
     <!-- 提醒 -->
     <section class="mb-4">
       <h2 class="settings-section__title">
@@ -728,7 +755,7 @@ async function onExportJson(): Promise<void> {
   dataMsg.value = ''
   try {
     const p = await downloadBackupJson()
-    dataMsg.value = `已导出备份（事件 ${p.events.length} / 规则 ${p.reminderRules.length} / 课 ${p.courses.length}）`
+    dataMsg.value = `已导出备份（事件 ${p.events.length} / 规则 ${p.reminderRules.length} / 课 ${p.courses.length} / 食物 ${p.foods.length}）`
   } catch (err) {
     dataMsg.value = err instanceof Error ? err.message : String(err)
   } finally {

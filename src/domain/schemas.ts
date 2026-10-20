@@ -167,3 +167,18 @@ export const CourseImportDraftSchema = z
     path: ['endPeriod'],
   })
 export type CourseImportDraft = z.infer<typeof CourseImportDraftSchema>
+
+/** N-food-pick: user-owned food name for random lunch pick. */
+export const FoodRowSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(100),
+  createdAt: z.number().int(),
+  updatedAt: z.number().int(),
+})
+export type FoodRow = z.infer<typeof FoodRowSchema>
+
+export const FoodNameInputSchema = z
+  .string()
+  .transform((s) => s.trim().replace(/\s+/g, ' '))
+  .pipe(z.string().min(1, '名称不能为空').max(100))
+

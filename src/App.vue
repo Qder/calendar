@@ -178,7 +178,7 @@ const currentTab = computed(() => {
   if (tabNames.has(name as (typeof navItems)[number]['to'])) return name
   if (name.startsWith('event') || name === 'backup') return 'home'
   if (name.startsWith('course') || name === 'week') return 'week'
-  if (name === 'debug-notifications') return 'settings'
+  if (name === 'debug-notifications' || name === 'help' || name === 'food') return 'settings'
   return 'month'
 })
 
@@ -204,6 +204,8 @@ const pageTitle = computed(() => {
     'course-edit': '编辑课程',
     backup: '备份与导出',
     'debug-notifications': '通知调试',
+    help: '使用说明',
+    food: '今天吃什么',
   }
   return map[String(route.name)] ?? '日历'
 })

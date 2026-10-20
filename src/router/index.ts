@@ -5,6 +5,7 @@ import CourseEditView from '@/views/CourseEditView.vue'
 import CourseImportView from '@/views/CourseImportView.vue'
 import DebugNotificationView from '@/views/DebugNotificationView.vue'
 import EventEditView from '@/views/EventEditView.vue'
+import FoodView from '@/views/FoodView.vue'
 import HelpView from '@/views/HelpView.vue'
 import HomeView from '@/views/HomeView.vue'
 import MonthView from '@/views/MonthView.vue'
@@ -63,6 +64,11 @@ const router = createRouter({
       path: '/help',
       name: 'help',
       component: HelpView,
+    },
+    {
+      path: '/food',
+      name: 'food',
+      component: FoodView,
     },
     {
       path: '/backup',

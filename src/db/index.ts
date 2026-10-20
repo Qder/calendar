@@ -2,13 +2,20 @@ import Dexie, { type EntityTable } from 'dexie'
 import type {
   CalendarEvent,
   CourseRow,
+  FoodRow,
   PeriodRow,
   ReminderRule,
   ScheduledNotification,
   SemesterRow,
   SettingsRow,
 } from '@/domain/schemas'
-import { DB_NAME, STORE_DEFS, STORE_DEFS_V2, STORE_DEFS_V3 } from './schema'
+import {
+  DB_NAME,
+  STORE_DEFS,
+  STORE_DEFS_V2,
+  STORE_DEFS_V3,
+  STORE_DEFS_V5,
+} from './schema'
 
 export class CalendarDb extends Dexie {
   _meta!: EntityTable<{ key: string; value: string }, 'key'>
@@ -22,6 +29,7 @@ export class CalendarDb extends Dexie {
   courses!: EntityTable<CourseRow, 'id'>
   periods!: EntityTable<PeriodRow, 'index'>
   semester!: EntityTable<SemesterRow, 'id'>
+  foods!: EntityTable<FoodRow, 'id'>
 
   constructor() {
     super(DB_NAME)
@@ -40,9 +48,9 @@ export class CalendarDb extends Dexie {
             if (ev.recurrence == null) ev.recurrence = 'none'
           })
       })
-    this.version(4).stores(STORE_DEFS)
+    this.version(4).stores(STORE_DEFS_V5)
     this.version(5)
-      .stores(STORE_DEFS)
+      .stores(STORE_DEFS_V5)
       .upgrade(async (tx) => {
         await tx
           .table('events')
@@ -53,6 +61,7 @@ export class CalendarDb extends Dexie {
             }
           })
       })
+    this.version(6).stores(STORE_DEFS)
   }
 }
 

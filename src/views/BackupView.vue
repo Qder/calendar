@@ -135,7 +135,7 @@ async function onExportJson(): Promise<void> {
   jsonMsg.value = ''
   try {
     const p = await downloadBackupJson()
-    jsonMsg.value = `已导出（事件 ${p.events.length} / 规则 ${p.reminderRules.length} / 课 ${p.courses.length}）`
+    jsonMsg.value = `已导出（事件 ${p.events.length} / 规则 ${p.reminderRules.length} / 课 ${p.courses.length} / 食物 ${p.foods.length}）`
   } catch (err) {
     jsonMsg.value = err instanceof Error ? err.message : String(err)
   } finally {
@@ -166,8 +166,8 @@ async function onImport(mode: BackupImportMode): Promise<void> {
     const stats = await importBackupJsonText(pendingText.value, mode)
     jsonMsg.value =
       mode === 'overwrite'
-        ? `已覆盖导入：事件 ${stats.events}，规则 ${stats.rules}，课 ${stats.courses}（已 rebuild 通知）`
-        : `已合并导入：事件 ${stats.events}，规则 ${stats.rules}，课 ${stats.courses}（已 rebuild 通知）`
+        ? `已覆盖导入：事件 ${stats.events}，规则 ${stats.rules}，课 ${stats.courses}，食物 ${stats.foods}（已 rebuild 通知）`
+        : `已合并导入：事件 ${stats.events}，规则 ${stats.rules}，课 ${stats.courses}，食物 ${stats.foods}（已 rebuild 通知）`
   } catch (err) {
     jsonMsg.value = err instanceof Error ? err.message : String(err)
   } finally {

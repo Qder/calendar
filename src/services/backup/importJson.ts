@@ -26,14 +26,14 @@ export function parseBackupJson(text: string): BackupPayload {
 
 /**
  * Import backup into Dexie then rebuildAll OS schedules.
- * - overwrite: clear events/rules/courses/periods/semester/settings then put
+ * - overwrite: clear events/rules/courses/periods/semester/settings/foods then put
  * - merge: upsert by primary key (settings by key; semester always put if present)
  * Scheduled notifications are always cleared and rebuilt (not stored in backup).
  */
 export async function importBackupPayload(
   payload: BackupPayload,
   mode: BackupImportMode,
-): Promise<{ events: number; rules: number; courses: number }> {
+): Promise<{ events: number; rules: number; courses: number; foods: number }> {
   const data = BackupPayloadSchema.parse(payload)
 
   await db.transaction(
@@ -46,6 +46,7 @@ export async function importBackupPayload(
       db.courses,
       db.periods,
       db.semester,
+      db.foods,
     ],
     async () => {
       await db.scheduled_notifications.clear()
@@ -57,6 +58,7 @@ export async function importBackupPayload(
         await db.periods.clear()
         await db.semester.clear()
         await db.settings.clear()
+        await db.foods.clear()
       }
 
       if (data.events.length) await db.events.bulkPut(data.events)
@@ -65,9 +67,9 @@ export async function importBackupPayload(
       }
       if (data.settings.length) await db.settings.bulkPut(data.settings)
       if (data.courses.length) await db.courses.bulkPut(data.courses)
-      // overwrite already cleared periods above; merge upserts by primary key
       if (data.periods.length) await db.periods.bulkPut(data.periods)
       if (data.semester) await db.semester.put(data.semester)
+      if (data.foods.length) await db.foods.bulkPut(data.foods)
     },
   )
 
@@ -77,12 +79,13 @@ export async function importBackupPayload(
     events: data.events.length,
     rules: data.reminderRules.length,
     courses: data.courses.length,
+    foods: data.foods.length,
   }
 }
 
 export async function importBackupJsonText(
   text: string,
   mode: BackupImportMode,
-): Promise<{ events: number; rules: number; courses: number }> {
+): Promise<{ events: number; rules: number; courses: number; foods: number }> {
   return importBackupPayload(parseBackupJson(text), mode)
 }

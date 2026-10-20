@@ -9,8 +9,9 @@ export const DB_NAME = 'calendar-local'
  * - v3: events.recurrence (field); scheduled_notifications.occurrenceDate
  * - v4: courses / periods / semester (stage 4 timetable)
  * - v5: events.reminderKind (alarm | banner; missing → banner)
+ * - v6: foods (N-food-pick)
  */
-export const DB_VERSION = 5
+export const DB_VERSION = 6
 
 export const STORE_DEFS_V2 = {
   _meta: 'key',
@@ -28,7 +29,8 @@ export const STORE_DEFS_V3 = {
   settings: 'key',
 } as const
 
-export const STORE_DEFS = {
+/** v4–v5 store map (no foods). */
+export const STORE_DEFS_V5 = {
   _meta: 'key',
   events: 'id, date, updatedAt',
   reminder_rules: 'id, eventId',
@@ -37,4 +39,9 @@ export const STORE_DEFS = {
   courses: 'id, weekday, name, updatedAt',
   periods: 'index',
   semester: 'id',
+} as const
+
+export const STORE_DEFS = {
+  ...STORE_DEFS_V5,
+  foods: 'id, name, updatedAt',
 } as const

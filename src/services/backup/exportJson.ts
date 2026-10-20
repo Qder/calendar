@@ -3,7 +3,7 @@ import { BACKUP_VERSION, type BackupPayload } from './backupSchema'
 
 /** Snapshot Dexie tables into a versioned backup payload (no scheduled rows). */
 export async function buildBackupPayload(): Promise<BackupPayload> {
-  const [events, reminderRules, settings, courses, periods, semester] =
+  const [events, reminderRules, settings, courses, periods, semester, foods] =
     await Promise.all([
       db.events.toArray(),
       db.reminder_rules.toArray(),
@@ -11,6 +11,7 @@ export async function buildBackupPayload(): Promise<BackupPayload> {
       db.courses.toArray(),
       db.periods.toArray(),
       db.semester.get('current'),
+      db.foods.toArray(),
     ])
 
   return {
@@ -22,6 +23,7 @@ export async function buildBackupPayload(): Promise<BackupPayload> {
     courses,
     periods,
     semester: semester ?? null,
+    foods,
   }
 }
 

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   CourseRowSchema,
   EventSchema,
+  FoodRowSchema,
   PeriodSchema,
   ReminderRuleSchema,
   SemesterSchema,
@@ -20,6 +21,8 @@ export const BackupPayloadSchema = z.object({
   courses: z.array(CourseRowSchema),
   periods: z.array(PeriodSchema),
   semester: SemesterSchema.nullable(),
+  /** N-food-pick; absent in older backups → []. */
+  foods: z.array(FoodRowSchema).default([]),
 })
 
 export type BackupPayload = z.infer<typeof BackupPayloadSchema>

@@ -138,4 +138,34 @@ describe('backup roundtrip + rebuildAll (mock NotificationService)', () => {
     const ids = (await db.events.toArray()).map((e) => e.id).sort()
     expect(ids).toEqual(['e-other', 'e-round'])
   })
+
+  it('foods roundtrip overwrite + old backup without foods defaults empty', async () => {
+    await db.foods.put({
+      id: 'f1',
+      name: '米饭',
+      createdAt: 1,
+      updatedAt: 1,
+    })
+    const payload = await buildBackupPayload()
+    expect(payload.foods).toHaveLength(1)
+
+    await db.foods.clear()
+    const stats = await importBackupJsonText(backupToJsonString(payload), 'overwrite')
+    expect(stats.foods).toBe(1)
+    expect((await db.foods.get('f1'))?.name).toBe('米饭')
+
+    const legacy = {
+      version: 1 as const,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      events: [],
+      reminderRules: [],
+      settings: [],
+      courses: [],
+      periods: [],
+      semester: null,
+    }
+    const parsed = parseBackupJson(JSON.stringify(legacy))
+    expect(parsed.foods).toEqual([])
+  })
+
 })
