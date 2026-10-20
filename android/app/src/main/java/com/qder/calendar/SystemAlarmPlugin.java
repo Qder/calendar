@@ -1,5 +1,6 @@
 package com.qder.calendar;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.provider.AlarmClock;
@@ -38,15 +39,21 @@ public class SystemAlarmPlugin extends Plugin {
             .putExtra(AlarmClock.EXTRA_MESSAGE, message == null ? "" : message)
             .putExtra(AlarmClock.EXTRA_SKIP_UI, false);
 
+        // Prefer resolve when package visibility allows; still try startActivity
+        // so OEM clocks that handle SET_ALARM are not blocked by a false null.
         PackageManager pm = getContext().getPackageManager();
-        if (intent.resolveActivity(pm) == null) {
-            call.reject("未找到系统时钟/闹钟应用");
-            return;
-        }
+        boolean resolvable = intent.resolveActivity(pm) != null;
 
-        getActivity().startActivity(intent);
-        JSObject ret = new JSObject();
-        ret.put("ok", true);
-        call.resolve(ret);
+        try {
+            getActivity().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("ok", true);
+            ret.put("resolved", resolvable);
+            call.resolve(ret);
+        } catch (ActivityNotFoundException e) {
+            call.reject("未找到系统时钟/闹钟应用");
+        } catch (Exception e) {
+            call.reject("打开系统闹钟失败: " + e.getMessage());
+        }
     }
 }
