@@ -121,7 +121,7 @@ export function applyPeriodDuration(
       return { ...p, end }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      throw new Error(`第${p.index}节：${msg}`)
+      throw new Error(`第${p.index}节：${msg}`, { cause: err })
     }
   })
 }
