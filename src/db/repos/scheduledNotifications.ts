@@ -64,3 +64,8 @@ export async function findScheduledDuplicate(args: {
       r.triggerAt === args.triggerAt,
   )
 }
+
+/** Drop every scheduled row (debug cancel-all / full reset). */
+export async function clearAllScheduled(): Promise<void> {
+  await db.scheduled_notifications.clear()
+}

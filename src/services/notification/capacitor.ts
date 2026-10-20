@@ -82,7 +82,20 @@ export class CapacitorNotificationService implements NotificationService {
   }
 
   async cancelAll(): Promise<void> {
-    await LocalNotifications.cancelAll()
+    // OEM: cancelAll alone may leave zombies; sweep getPending one-by-one.
+    try {
+      await LocalNotifications.cancelAll()
+    } catch (err) {
+      console.warn('[notif] cancelAll failed', err)
+    }
+    const leftover = await this.listPending()
+    for (const item of leftover) {
+      try {
+        await this.cancel(item.id)
+      } catch (err) {
+        console.warn('[notif] cancel leftover failed', item.id, err)
+      }
+    }
   }
 
   async listPending(): Promise<PendingNotification[]> {

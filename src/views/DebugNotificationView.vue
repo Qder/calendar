@@ -128,6 +128,7 @@
 import { computed, onMounted, ref } from 'vue'
 import dayjs from 'dayjs'
 import { addMs } from '@/domain/triggerAt'
+import { clearAllScheduled } from '@/db/repos/scheduledNotifications'
 import {
   getNotificationPlatformLabel,
   getNotificationService,
@@ -187,8 +188,13 @@ async function scheduleIn(seconds: number, label: string): Promise<void> {
 async function onCancelAll(): Promise<void> {
   await withBusy(async () => {
     await svc.cancelAll()
-    statusMsg.value = '已取消全部待触发'
-    pending.value = []
+    await clearAllScheduled()
+    await refreshPending()
+    const left = pending.value.length
+    statusMsg.value =
+      left === 0
+        ? '已取消全部待触发（OS+本地）'
+        : `已尝试取消；OS 仍剩 ${left} 条（OEM 可能拦 cancel）`
   })
 }
 
