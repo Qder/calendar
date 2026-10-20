@@ -6,6 +6,15 @@ const hm = z.string().regex(/^\d{2}:\d{2}$/, 'HH:mm')
 export const RecurrenceSchema = z.enum(['none', 'weekly', 'monthly', 'yearly'])
 export type RecurrenceFreq = z.infer<typeof RecurrenceSchema>
 
+/** Reminder intensity: alarm = high-importance channel; banner = default channel. */
+export const ReminderKindSchema = z.enum(['alarm', 'banner'])
+export type ReminderKind = z.infer<typeof ReminderKindSchema>
+
+/** Old rows / missing field → banner (N-reminder-kind gate). */
+export function normalizeReminderKind(value: unknown): ReminderKind {
+  return value === 'alarm' ? 'alarm' : 'banner'
+}
+
 export const EventSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1).max(200),
@@ -15,6 +24,11 @@ export const EventSchema = z.object({
   time: hm.nullable().optional(),
   note: z.string().max(2000).optional().default(''),
   recurrence: RecurrenceSchema.default('none'),
+  /**
+   * Reminder intensity (Android notification channel).
+   * Missing on legacy rows — treat as banner via normalizeReminderKind.
+   */
+  reminderKind: ReminderKindSchema.default('banner'),
   createdAt: z.number().int(),
   updatedAt: z.number().int(),
 })
@@ -69,6 +83,8 @@ export const EventInputSchema = z.object({
   time: hm.nullable().optional(),
   note: z.string().max(2000).optional().default(''),
   recurrence: RecurrenceSchema.default('none'),
+  /** Default banner; alarm = high-importance local notification channel. */
+  reminderKind: ReminderKindSchema.default('banner'),
   /**
    * Multiple reminders for stage 3.
    * - `undefined`: use one default rule (daysBefore=1 + settings default time)

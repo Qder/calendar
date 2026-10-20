@@ -15,6 +15,7 @@ const baseEvent: CalendarEvent = {
   time: '14:30',
   note: '带材料',
   recurrence: 'weekly',
+  reminderKind: 'banner',
   createdAt: 1,
   updatedAt: 1,
 }

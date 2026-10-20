@@ -3,6 +3,7 @@ import {
   LocalNotifications,
   type Channel,
 } from '@capacitor/local-notifications'
+import { normalizeReminderKind } from '@/domain/schemas'
 import { toNotificationId } from '@/domain/triggerAt'
 import type {
   NotificationService,
@@ -10,8 +11,13 @@ import type {
   ScheduleRequest,
 } from './types'
 
-const CHANNEL_ID = 'calendar_reminders'
-const CHANNEL_NAME = '日历提醒'
+/** High-importance: heads-up + sound/vibration (闹钟式强提醒). */
+export const CHANNEL_ALARM_ID = 'calendar-alarm'
+const CHANNEL_ALARM_NAME = '闹钟式强提醒'
+
+/** Default importance: banner / shade (仅弹窗通知). */
+export const CHANNEL_BANNER_ID = 'calendar-banner'
+const CHANNEL_BANNER_NAME = '仅弹窗通知'
 
 /**
  * Android/iOS implementation via @capacitor/local-notifications.
@@ -20,14 +26,16 @@ const CHANNEL_NAME = '日历提醒'
  * Exact-alarm basis (@capacitor/local-notifications ^8.3 + Capacitor Android docs):
  * - Manifest: SCHEDULE_EXACT_ALARM (Android 12+)
  * - Runtime: requestPermissions() for POST_NOTIFICATIONS (Android 13+)
- * - schedule() uses isExactNotification: true (plugin default); allowWhileIdle for Doze
+ * - schedule() uses isExactNotification: true; allowWhileIdle for Doze
  * See README "精确闹钟" section.
+ *
+ * N-reminder-kind: two Android channels; reminderKind selects channelId.
  */
 export class CapacitorNotificationService implements NotificationService {
-  private channelReady = false
+  private channelsReady = false
 
   async requestPermission(): Promise<boolean> {
-    await this.ensureChannel()
+    await this.ensureChannels()
 
     const current = await LocalNotifications.checkPermissions()
     if (current.display === 'granted') {
@@ -43,7 +51,11 @@ export class CapacitorNotificationService implements NotificationService {
 
   async schedule(req: ScheduleRequest): Promise<void> {
     const id = toNotificationId(req.id)
-    await this.ensureChannel()
+    await this.ensureChannels()
+
+    const kind = normalizeReminderKind(req.reminderKind)
+    const channelId =
+      kind === 'alarm' ? CHANNEL_ALARM_ID : CHANNEL_BANNER_ID
 
     await LocalNotifications.schedule({
       notifications: [
@@ -51,12 +63,12 @@ export class CapacitorNotificationService implements NotificationService {
           id,
           title: req.title,
           body: req.body,
-          channelId: CHANNEL_ID,
+          channelId,
           schedule: {
             at: req.triggerAt,
             allowWhileIdle: true,
           },
-          // Explicit: we need wall-clock accuracy for "N seconds later" debug.
+          // Exact wall-clock for both kinds; channel controls interruptiveness.
           isExactNotification: true,
         },
       ],
@@ -83,25 +95,38 @@ export class CapacitorNotificationService implements NotificationService {
     }))
   }
 
-  private async ensureChannel(): Promise<void> {
-    if (this.channelReady || Capacitor.getPlatform() !== 'android') {
-      this.channelReady = true
+  private async ensureChannels(): Promise<void> {
+    if (this.channelsReady || Capacitor.getPlatform() !== 'android') {
+      this.channelsReady = true
       return
     }
 
-    const channel: Channel = {
-      id: CHANNEL_ID,
-      name: CHANNEL_NAME,
-      description: '事件与调试提醒（高重要性）',
+    const alarm: Channel = {
+      id: CHANNEL_ALARM_ID,
+      name: CHANNEL_ALARM_NAME,
+      description: '高重要性：声音/震动，尽量打断（闹钟式）',
       // 5 = IMPORTANCE_HIGH → heads-up on Android 8+
       importance: 5,
       visibility: 1,
       vibration: true,
       lights: true,
+      sound: 'default',
     }
 
-    await LocalNotifications.createChannel(channel)
-    this.channelReady = true
+    const banner: Channel = {
+      id: CHANNEL_BANNER_ID,
+      name: CHANNEL_BANNER_NAME,
+      description: '普通重要性：通知栏/横幅即可，不强调闹钟级打断',
+      // 4 = IMPORTANCE_DEFAULT
+      importance: 4,
+      visibility: 1,
+      vibration: false,
+      lights: true,
+    }
+
+    await LocalNotifications.createChannel(alarm)
+    await LocalNotifications.createChannel(banner)
+    this.channelsReady = true
   }
 
   /**

@@ -70,6 +70,7 @@ describe('buildItemsByDate', () => {
         time: '14:00',
         note: '',
         recurrence: 'none',
+        reminderKind: 'banner',
         createdAt: 1,
         updatedAt: 1,
       },

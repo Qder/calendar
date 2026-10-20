@@ -65,6 +65,7 @@ const event: CalendarEvent = {
   time: '10:00',
   note: '',
   recurrence: 'none',
+  reminderKind: 'banner',
   createdAt: 100,
   updatedAt: 100,
 }

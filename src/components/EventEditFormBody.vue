@@ -119,24 +119,41 @@
       未启用提醒（保存后不会调度通知）
     </div>
 
-    <v-btn
-      v-if="showSystemAlarm && hasAnyReminder"
-      variant="outlined"
-      color="primary"
-      class="mb-3 touch-row"
-      prepend-icon="mdi-alarm"
-      block
-      :loading="systemAlarmBusy"
-      aria-label="添加到系统闹钟"
-      @click="$emit('add-system-alarm')"
-    >
-      添加到系统闹钟
-    </v-btn>
     <div
-      v-if="showSystemAlarm && hasAnyReminder"
-      class="text-medium-emphasis text-caption mb-3"
+      v-if="hasAnyReminder"
+      class="mb-3"
     >
-      仅打开系统时钟预填时刻与标题，需在时钟里确认；不替代 App 本地通知。多条提醒只同步最近一条。
+      <div class="text-body-2 mb-2">
+        提醒方式
+      </div>
+      <v-btn-toggle
+        :model-value="reminderKind"
+        color="primary"
+        variant="outlined"
+        divided
+        mandatory
+        class="reminder-kind-toggle"
+        aria-label="提醒方式"
+        @update:model-value="onReminderKind($event)"
+      >
+        <v-btn
+          value="banner"
+          class="touch-row"
+          aria-label="仅弹窗通知"
+        >
+          仅弹窗通知
+        </v-btn>
+        <v-btn
+          value="alarm"
+          class="touch-row"
+          aria-label="闹钟式强提醒"
+        >
+          闹钟式强提醒
+        </v-btn>
+      </v-btn-toggle>
+      <div class="text-medium-emphasis text-caption mt-2">
+        强提醒走高重要性通知渠道（声音/震动）；仅弹窗走普通渠道。均在 App 内本地通知，不跳系统时钟。
+      </div>
     </div>
 
     <v-textarea
@@ -166,6 +183,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RecurrenceFreq } from '@/domain/recurrence'
+import {
+  normalizeReminderKind,
+  type ReminderKind,
+} from '@/domain/schemas'
 
 const props = defineProps<{
   title: string
@@ -178,12 +199,10 @@ const props = defineProps<{
   customEnabled: boolean
   customDays: number
   remindTime: string
+  reminderKind: ReminderKind
   isNew: boolean
   error: string
   recurrenceItems: { title: string; value: string }[]
-  /** Android only — hide on Web/Tauri */
-  showSystemAlarm?: boolean
-  systemAlarmBusy?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -197,7 +216,7 @@ const emit = defineEmits<{
   'update:customEnabled': [boolean]
   'update:customDays': [number]
   'update:remindTime': [string]
-  'add-system-alarm': []
+  'update:reminderKind': [ReminderKind]
 }>()
 
 const presetOptions = [
@@ -226,6 +245,10 @@ function onCustomDays(v: unknown): void {
   const n = Number(v)
   emit('update:customDays', Number.isFinite(n) ? n : 0)
 }
+
+function onReminderKind(v: unknown): void {
+  emit('update:reminderKind', normalizeReminderKind(v))
+}
 </script>
 
 <style scoped>
@@ -235,5 +258,11 @@ function onCustomDays(v: unknown): void {
 }
 .touch-row {
   min-height: 44px;
+}
+.reminder-kind-toggle {
+  width: 100%;
+}
+.reminder-kind-toggle :deep(.v-btn) {
+  flex: 1;
 }
 </style>

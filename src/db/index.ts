@@ -41,6 +41,18 @@ export class CalendarDb extends Dexie {
           })
       })
     this.version(4).stores(STORE_DEFS)
+    this.version(5)
+      .stores(STORE_DEFS)
+      .upgrade(async (tx) => {
+        await tx
+          .table('events')
+          .toCollection()
+          .modify((ev: Record<string, unknown>) => {
+            if (ev.reminderKind !== 'alarm' && ev.reminderKind !== 'banner') {
+              ev.reminderKind = 'banner'
+            }
+          })
+      })
   }
 }
 

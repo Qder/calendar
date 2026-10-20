@@ -43,12 +43,10 @@
           v-model:custom-enabled="customEnabled"
           v-model:custom-days="customDays"
           v-model:remind-time="remindTime"
+          v-model:reminder-kind="reminderKind"
           :is-new="isNew"
           :error="error"
           :recurrence-items="recurrenceItems"
-          :show-system-alarm="showSystemAlarm"
-          :system-alarm-busy="systemAlarmBusy"
-          @add-system-alarm="onAddSystemAlarm"
         />
         <div
           v-else
@@ -118,12 +116,10 @@
           v-model:custom-enabled="customEnabled"
           v-model:custom-days="customDays"
           v-model:remind-time="remindTime"
+          v-model:reminder-kind="reminderKind"
           :is-new="isNew"
           :error="error"
           :recurrence-items="recurrenceItems"
-          :show-system-alarm="showSystemAlarm"
-          :system-alarm-busy="systemAlarmBusy"
-          @add-system-alarm="onAddSystemAlarm"
         />
         <div
           v-else
@@ -183,15 +179,6 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-
-  <v-snackbar
-    v-model="snackOpen"
-    :color="snackColor"
-    timeout="3500"
-    location="bottom"
-  >
-    {{ snackText }}
-  </v-snackbar>
 </template>
 
 <script setup lang="ts">
@@ -202,12 +189,10 @@ import EventEditActions from '@/components/EventEditActions.vue'
 import EventEditFormBody from '@/components/EventEditFormBody.vue'
 import { todayYmd } from '@/domain/date'
 import type { RecurrenceFreq } from '@/domain/recurrence'
-import { pickSystemAlarmTarget } from '@/domain/systemAlarm'
-import { detectAppPlatform } from '@/domain/platform'
 import {
-  canUseSystemAlarm,
-  openSystemAlarm,
-} from '@/services/platform/systemAlarm'
+  normalizeReminderKind,
+  type ReminderKind,
+} from '@/domain/schemas'
 import { useEventsStore } from '@/stores/events'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -239,55 +224,10 @@ const customDays = ref(2)
 /** 加载时多余的非预设 daysBefore（UI 只展示第一个自定义） */
 const extraCustomDays = ref<number[]>([])
 const remindTime = ref('09:00')
+const reminderKind = ref<ReminderKind>('banner')
 const saving = ref(false)
 const error = ref('')
 const deleteConfirmOpen = ref(false)
-const showSystemAlarm = canUseSystemAlarm()
-const systemAlarmBusy = ref(false)
-const snackOpen = ref(false)
-const snackText = ref('')
-const snackColor = ref<'success' | 'error' | 'info'>('info')
-
-function showSnack(
-  message: string,
-  color: 'success' | 'error' | 'info' = 'info',
-): void {
-  snackText.value = message
-  snackColor.value = color
-  snackOpen.value = true
-}
-
-async function onAddSystemAlarm(): Promise<void> {
-  if (detectAppPlatform() !== 'android') {
-    showSnack('仅手机可用', 'info')
-    return
-  }
-  const reminders = buildReminders()
-  if (reminders.length === 0) {
-    showSnack('请先启用提醒并设置提醒时刻', 'error')
-    return
-  }
-  const target = pickSystemAlarmTarget({
-    title: title.value.trim() || '日历提醒',
-    eventDate: date.value,
-    rules: reminders,
-  })
-  if (!target) {
-    showSnack('无法计算系统闹钟时刻', 'error')
-    return
-  }
-  systemAlarmBusy.value = true
-  try {
-    const result = await openSystemAlarm(target)
-    if (result.ok) {
-      showSnack('已打开系统时钟，请确认闹钟', 'success')
-    } else {
-      showSnack(result.reason, 'error')
-    }
-  } finally {
-    systemAlarmBusy.value = false
-  }
-}
 
 const recurrenceItems = [
   { title: '不重复', value: 'none' },
@@ -383,6 +323,7 @@ onMounted(async () => {
       time.value = ev.time ?? '09:00'
       note.value = ev.note ?? ''
       recurrence.value = (ev.recurrence ?? 'none') as RecurrenceFreq
+      reminderKind.value = normalizeReminderKind(ev.reminderKind)
       const rules = await events.loadRules(ev.id)
       applyRemindersFromRules(
         rules.map((r) => ({ daysBefore: r.daysBefore, time: r.time })),
@@ -392,6 +333,7 @@ onMounted(async () => {
       customEnabled.value = false
       extraCustomDays.value = []
       remindTime.value = settings.defaultRemindTime || '09:00'
+      reminderKind.value = 'banner'
     }
   } finally {
     bootLoading.value = false
@@ -432,6 +374,7 @@ async function onSave(): Promise<void> {
         time: allDay.value ? null : time.value,
         note: note.value,
         recurrence: recurrence.value,
+        reminderKind: normalizeReminderKind(reminderKind.value),
         reminders: buildReminders(),
       },
       id,

@@ -13,7 +13,11 @@ import {
 import { addDaysYmd, todayYmd } from '@/domain/date'
 import { maxDaysBefore, planTriggers } from '@/domain/reminders'
 import type { RecurrenceFreq } from '@/domain/recurrence'
-import type { CalendarEvent, ReminderRule } from '@/domain/schemas'
+import {
+  normalizeReminderKind,
+  type CalendarEvent,
+  type ReminderRule,
+} from '@/domain/schemas'
 import { getNotificationService } from '@/services/notification'
 import { MAX_SCHEDULED, WINDOW_DAYS } from './constants'
 
@@ -102,6 +106,7 @@ export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
         title: event.title,
         body: reminderBody(item.daysBefore, item.occurrenceDate),
         triggerAt: item.triggerAt,
+        reminderKind: normalizeReminderKind(event.reminderKind),
       })
     } catch (err) {
       await deleteScheduledById(notificationId)

@@ -1,3 +1,5 @@
+import type { ReminderKind } from '@/domain/schemas'
+
 /** Payload for scheduling a one-shot local notification. id is a 32-bit int. */
 export interface ScheduleRequest {
   id: number
@@ -5,6 +7,12 @@ export interface ScheduleRequest {
   body: string
   /** Absolute local Date when the notification should fire. */
   triggerAt: Date
+  /**
+   * Android channel selector (N-reminder-kind).
+   * Omitted / unknown → banner (default importance channel).
+   * Web/desktop stubs ignore this.
+   */
+  reminderKind?: ReminderKind
 }
 
 export interface PendingNotification {

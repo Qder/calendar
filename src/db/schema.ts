@@ -8,8 +8,9 @@ export const DB_NAME = 'calendar-local'
  * - v2: events / reminder_rules / scheduled_notifications / settings
  * - v3: events.recurrence (field); scheduled_notifications.occurrenceDate
  * - v4: courses / periods / semester (stage 4 timetable)
+ * - v5: events.reminderKind (alarm | banner; missing → banner)
  */
-export const DB_VERSION = 4
+export const DB_VERSION = 5
 
 export const STORE_DEFS_V2 = {
   _meta: 'key',

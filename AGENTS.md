@@ -27,7 +27,7 @@
 - 只经 `NotificationService`；Android 精确闹钟；Desktop 杀进程不验收；Web stub 不验收。
 - `WINDOW_DAYS=60`、`MAX_SCHEDULED=64`；展开上界含 max(daysBefore)；resume 防抖。
 - 改删整系列。调试页默认关（开发者选项）。
-- **N-sys-alarm**：仅 Android；`ACTION_SET_ALARM` 预填时刻+标题（不 SKIP_UI）；与本地通知并存；改删不回写系统闹钟；多规则只开最近一条。
+- **N-reminder-kind**：事项字段 `reminderKind: alarm|banner`（默认 banner）；Android 双渠道；不跳系统时钟。N-sys-alarm 入口已下架。
 
 ## 协作
 

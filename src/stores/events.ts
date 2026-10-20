@@ -15,6 +15,7 @@ import {
 } from '@/domain/recurrence'
 import {
   EventInputSchema,
+  normalizeReminderKind,
   type CalendarEvent,
   type EventInput,
   type ReminderRule,
@@ -99,6 +100,7 @@ export const useEventsStore = defineStore('events', () => {
       time: parsed.time ?? null,
       note: parsed.note ?? '',
       recurrence: parsed.recurrence ?? 'none',
+      reminderKind: normalizeReminderKind(parsed.reminderKind),
       createdAt: prev?.createdAt ?? now,
       updatedAt: now,
     }
