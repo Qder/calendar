@@ -262,6 +262,20 @@
           </v-btn>
         </v-card-title>
         <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            只需改每节时长与各节开始时刻；结束时间自动计算（不允许跨天）。
+          </p>
+          <v-text-field
+            v-model.number="periodDurationMin"
+            label="每节时长（分钟）"
+            type="number"
+            min="1"
+            max="180"
+            class="mb-3"
+            hide-details="auto"
+            style="max-width: 220px"
+            @update:model-value="onDurationChange"
+          />
           <div
             v-for="(p, idx) in periodDraft"
             :key="p.index"
@@ -278,13 +292,15 @@
               density="compact"
               hide-details
               style="max-width: 140px"
+              @update:model-value="() => onPeriodStartChange(idx)"
             />
             <v-text-field
-              v-model="periodDraft[idx].end"
-              label="结束"
+              :model-value="periodDraft[idx].end"
+              label="结束（自动）"
               type="time"
               density="compact"
               hide-details
+              readonly
               style="max-width: 140px"
             />
           </div>
@@ -509,6 +525,12 @@ import {
   writeThemeMode,
   type ThemeMode,
 } from '@/components/themeMode'
+import {
+  applyPeriodDuration,
+  DEFAULT_PERIOD_DURATION_MIN,
+  endHmFromStart,
+  inferPeriodDurationMinutes,
+} from '@/domain/periods'
 import type { PeriodRow } from '@/domain/schemas'
 import { downloadBackupJson } from '@/services/backup'
 import { downloadIcs } from '@/services/backup/exportIcs'
@@ -565,8 +587,36 @@ const savingSem = ref(false)
 const semMsg = ref('')
 
 const periodDraft = ref<PeriodRow[]>([])
+const periodDurationMin = ref(DEFAULT_PERIOD_DURATION_MIN)
 const savingPeriods = ref(false)
 const periodMsg = ref('')
+
+function recomputeAllEnds(): void {
+  try {
+    periodDraft.value = applyPeriodDuration(
+      periodDraft.value,
+      Number(periodDurationMin.value),
+    ) as PeriodRow[]
+    periodMsg.value = ''
+  } catch (err) {
+    periodMsg.value = err instanceof Error ? err.message : String(err)
+  }
+}
+
+function onDurationChange(): void {
+  recomputeAllEnds()
+}
+
+function onPeriodStartChange(idx: number): void {
+  const row = periodDraft.value[idx]
+  if (!row) return
+  try {
+    row.end = endHmFromStart(row.start, Number(periodDurationMin.value))
+    periodMsg.value = ''
+  } catch (err) {
+    periodMsg.value = err instanceof Error ? err.message : String(err)
+  }
+}
 
 const showAutostart = ref(false)
 const autostartOn = ref(false)
@@ -634,6 +684,7 @@ onMounted(async () => {
     totalWeeks.value = semesterStore.semester.totalWeeks
   }
   periodDraft.value = semesterStore.periods.map((p) => ({ ...p }))
+  periodDurationMin.value = inferPeriodDurationMinutes(periodDraft.value)
 
   showAutostart.value = isTauriDesktop()
   if (showAutostart.value) {
@@ -704,8 +755,12 @@ async function onSavePeriods(): Promise<void> {
   savingPeriods.value = true
   periodMsg.value = ''
   try {
-    await semesterStore.savePeriodTable(periodDraft.value.map((p) => ({ ...p }))
-    )
+    const next = applyPeriodDuration(
+      periodDraft.value,
+      Number(periodDurationMin.value),
+    ) as PeriodRow[]
+    periodDraft.value = next.map((p) => ({ ...p }))
+    await semesterStore.savePeriodTable(periodDraft.value.map((p) => ({ ...p })))
     periodMsg.value = '节次已保存'
   } catch (err) {
     periodMsg.value = err instanceof Error ? err.message : String(err)
@@ -717,6 +772,7 @@ async function onSavePeriods(): Promise<void> {
 async function onResetPeriods(): Promise<void> {
   await semesterStore.resetPeriods()
   periodDraft.value = semesterStore.periods.map((p) => ({ ...p }))
+  periodDurationMin.value = inferPeriodDurationMinutes(periodDraft.value)
   periodMsg.value = '已恢复默认节次（尚未点保存也会写入）'
 }
 
