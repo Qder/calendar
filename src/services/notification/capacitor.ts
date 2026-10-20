@@ -10,6 +10,8 @@ import type {
   PendingNotification,
   ScheduleRequest,
 } from './types'
+import { recordScheduleWarning } from './scheduleHealth'
+import { ensureExactAlarmAccess } from '@/services/platform/exactAlarm'
 
 /** High-importance: heads-up + sound/vibration (闹钟式强提醒). */
 export const CHANNEL_ALARM_ID = 'calendar-alarm'
@@ -57,7 +59,7 @@ export class CapacitorNotificationService implements NotificationService {
     const channelId =
       kind === 'alarm' ? CHANNEL_ALARM_ID : CHANNEL_BANNER_ID
 
-    await LocalNotifications.schedule({
+    const result = await LocalNotifications.schedule({
       notifications: [
         {
           id,
@@ -73,6 +75,13 @@ export class CapacitorNotificationService implements NotificationService {
         },
       ],
     })
+    // N-exact-alarm: inexact fallback must not stay silent.
+    if (result.warning) {
+      recordScheduleWarning({
+        code: result.warning.code,
+        message: result.warning.message,
+      })
+    }
   }
 
   async cancel(id: number): Promise<void> {
@@ -143,18 +152,9 @@ export class CapacitorNotificationService implements NotificationService {
   }
 
   /**
-   * If exact alarms are denied, open system settings once so Yang can grant
-   * "Alarms & reminders". Non-fatal if the API is unavailable (older OS).
+   * N-exact-alarm: refresh status + open system 「闹钟和提醒」 if denied.
    */
   private async ensureExactAlarmHint(): Promise<void> {
-    if (Capacitor.getPlatform() !== 'android') return
-    try {
-      const status = await LocalNotifications.checkExactNotificationSetting()
-      if (status.exact_alarm !== 'granted') {
-        await LocalNotifications.changeExactNotificationSetting()
-      }
-    } catch (err) {
-      console.warn('[capacitor-notification] exact-alarm check skipped', err)
-    }
+    await ensureExactAlarmAccess({ openSettingsIfDenied: true })
   }
 }

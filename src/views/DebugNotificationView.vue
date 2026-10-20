@@ -44,6 +44,45 @@
       variant="outlined"
       class="mb-4"
     >
+      <v-card-title>精确闹钟 / 调度健康</v-card-title>
+      <v-card-text>
+        <div class="text-body-2 mb-2">
+          精确闹钟：<strong>{{ exactAlarmLabel }}</strong>
+        </div>
+        <v-alert
+          v-if="scheduleAlert"
+          type="warning"
+          variant="tonal"
+          density="compact"
+          class="mb-3"
+        >
+          {{ scheduleAlert }}
+        </v-alert>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          class="me-2 mb-2"
+          :disabled="busy"
+          @click="onRefreshExact"
+        >
+          刷新精确闹钟状态
+        </v-btn>
+        <v-btn
+          color="secondary"
+          variant="outlined"
+          class="mb-2"
+          :disabled="busy"
+          @click="onOpenExactSettings"
+        >
+          打开系统「闹钟和提醒」
+        </v-btn>
+      </v-card-text>
+    </v-card>
+
+    <v-card
+      variant="outlined"
+      class="mb-4"
+    >
       <v-card-title>调度调试</v-card-title>
       <v-card-text class="d-flex flex-wrap ga-2">
         <v-btn
@@ -125,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import dayjs from 'dayjs'
 import { addMs } from '@/domain/triggerAt'
 import { clearAllScheduled } from '@/db/repos/scheduledNotifications'
@@ -134,6 +173,17 @@ import {
   getNotificationService,
   type PendingNotification,
 } from '@/services/notification'
+import {
+  getScheduleHealth,
+  scheduleHealthAlertText,
+  subscribeScheduleHealth,
+  type ExactAlarmState,
+} from '@/services/notification/scheduleHealth'
+import {
+  ensureExactAlarmAccess,
+  refreshExactAlarmStatus,
+} from '@/services/platform/exactAlarm'
+import { tryOpenAndroidReminderSettings } from '@/services/platform/oemNotifications'
 
 const svc = getNotificationService()
 
@@ -147,8 +197,41 @@ const nextId = ref(1000)
 
 const platformLabel = computed(() => getNotificationPlatformLabel())
 
+const exactAlarm = ref<ExactAlarmState>('unknown')
+const scheduleAlert = ref<string | null>(null)
+const exactAlarmLabel = computed(() => {
+  switch (exactAlarm.value) {
+    case 'granted':
+      return '已允许'
+    case 'denied':
+      return '未允许'
+    case 'prompt':
+      return '待确认'
+    case 'unsupported':
+      return '本平台不适用'
+    default:
+      return '未知 / 未检测'
+  }
+})
+
+function syncHealth(): void {
+  const snap = getScheduleHealth()
+  exactAlarm.value = snap.exactAlarm
+  scheduleAlert.value = scheduleHealthAlertText(snap)
+}
+
+let unsubHealth: (() => void) | null = null
+
 onMounted(() => {
+  syncHealth()
+  unsubHealth = subscribeScheduleHealth(() => syncHealth())
   void onListPending()
+  void onRefreshExact()
+})
+
+onUnmounted(() => {
+  unsubHealth?.()
+  unsubHealth = null
 })
 
 async function withBusy(fn: () => Promise<void>): Promise<void> {
@@ -181,6 +264,10 @@ async function scheduleIn(seconds: number, label: string): Promise<void> {
       triggerAt,
     })
     statusMsg.value = `已调度 #${id} → ${dayjs(triggerAt).format('YYYY-MM-DD HH:mm:ss')}`
+    syncHealth()
+    if (scheduleAlert.value) {
+      statusMsg.value += ` · 警告：${scheduleAlert.value}`
+    }
     await refreshPending()
   })
 }
@@ -207,6 +294,25 @@ async function onListPending(): Promise<void> {
 
 async function refreshPending(): Promise<void> {
   pending.value = await svc.listPending()
+}
+
+async function onRefreshExact(): Promise<void> {
+  await withBusy(async () => {
+    await refreshExactAlarmStatus()
+    syncHealth()
+    statusMsg.value = `精确闹钟：${exactAlarmLabel.value}`
+  })
+}
+
+async function onOpenExactSettings(): Promise<void> {
+  await withBusy(async () => {
+    const opened = await tryOpenAndroidReminderSettings()
+    await ensureExactAlarmAccess({ openSettingsIfDenied: false })
+    syncHealth()
+    statusMsg.value = opened
+      ? '已尝试打开系统「闹钟和提醒」'
+      : '无法自动跳转系统页（非 Android 或 API 不可用）'
+  })
 }
 
 function formatTrigger(at: Date | null): string {

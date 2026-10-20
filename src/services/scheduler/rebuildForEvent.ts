@@ -19,6 +19,7 @@ import {
   type ReminderRule,
 } from '@/domain/schemas'
 import { getNotificationService } from '@/services/notification'
+import { ensureExactAlarmAccess } from '@/services/platform/exactAlarm'
 import { MAX_SCHEDULED, WINDOW_DAYS } from './constants'
 
 function reminderBody(daysBefore: number, occurrenceDate: string): string {
@@ -82,6 +83,12 @@ export async function rebuildForEvent(event: CalendarEvent): Promise<void> {
   }
 
   const svc = getNotificationService()
+  // N-exact-alarm: after save/rebuild, check + guide if exact denied.
+  try {
+    await ensureExactAlarmAccess({ openSettingsIfDenied: true })
+  } catch (err) {
+    console.warn('[scheduler] exact-alarm gate failed', err)
+  }
 
   for (const item of planned) {
     // Defensive idempotency (cancel-first already clears; still guard duplicates).

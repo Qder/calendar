@@ -1,12 +1,23 @@
 import { rebuildAll } from './rebuildAll'
 import { purgeExpiredPending } from './purgeExpiredPending'
+import { ensureExactAlarmAccess } from '@/services/platform/exactAlarm'
 
 const DEBOUNCE_MS = 400
 
 let wired = false
 let timer: ReturnType<typeof setTimeout> | null = null
+/** Only the first refill (cold start) auto-opens system exact-alarm settings. */
+let coldStartGateDone = false
 
 async function refillSchedule(): Promise<void> {
+  const openSettings = !coldStartGateDone
+  coldStartGateDone = true
+  // N-exact-alarm: check on cold start; denied → guide system page.
+  try {
+    await ensureExactAlarmAccess({ openSettingsIfDenied: openSettings })
+  } catch (err) {
+    console.warn('[scheduler] exact-alarm gate failed', err)
+  }
   // N-notif-miss: drop OS zombies (past still pending) before rolling rebuild.
   try {
     await purgeExpiredPending({ reissueMissed: true })
@@ -55,4 +66,5 @@ export function unwireScheduleResumeHooks(): void {
     timer = null
   }
   wired = false
+  coldStartGateDone = false
 }

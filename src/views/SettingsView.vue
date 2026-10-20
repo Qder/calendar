@@ -119,6 +119,19 @@
             国产 Android 常需允许通知、精确闹钟、自启动与后台耗电白名单。详见
             <code>docs/android-oem-notifications.md</code>。
           </p>
+          <v-alert
+            v-if="scheduleAlert"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-3"
+            :title="'精确闹钟 / 调度提示'"
+          >
+            {{ scheduleAlert }}
+            <div class="text-caption mt-1">
+              精确闹钟状态：{{ exactAlarmLabel }}
+            </div>
+          </v-alert>
           <div class="d-flex flex-wrap ga-2">
             <v-btn
               color="primary"
@@ -461,7 +474,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDisplay, useTheme } from 'vuetify'
 import {
   readThemeMode,
@@ -483,6 +496,13 @@ import {
   isTauriDesktop,
   tryOpenAndroidReminderSettings,
 } from '@/services/platform/oemNotifications'
+import { refreshExactAlarmStatus } from '@/services/platform/exactAlarm'
+import {
+  getScheduleHealth,
+  scheduleHealthAlertText,
+  subscribeScheduleHealth,
+  type ExactAlarmState,
+} from '@/services/notification/scheduleHealth'
 import { useSemesterStore } from '@/stores/semester'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -529,6 +549,31 @@ const autostartMsg = ref('')
 const androidNative = computed(() => isAndroidNative())
 const oemExpanded = ref(false)
 const oemMsg = ref('')
+const exactAlarm = ref<ExactAlarmState>('unknown')
+const scheduleAlert = ref<string | null>(null)
+
+function syncScheduleHealth(): void {
+  const snap = getScheduleHealth()
+  exactAlarm.value = snap.exactAlarm
+  scheduleAlert.value = scheduleHealthAlertText(snap)
+}
+
+const exactAlarmLabel = computed(() => {
+  switch (exactAlarm.value) {
+    case 'granted':
+      return '已允许'
+    case 'denied':
+      return '未允许'
+    case 'prompt':
+      return '待确认'
+    case 'unsupported':
+      return '本平台不适用'
+    default:
+      return '未知 / 未检测'
+  }
+})
+
+let unsubHealth: (() => void) | null = null
 
 const permissionLabel = ref('检测中…')
 const permissionBusy = ref(false)
@@ -571,6 +616,20 @@ onMounted(async () => {
       autostartOn.value = false
     }
   }
+
+  syncScheduleHealth()
+  unsubHealth = subscribeScheduleHealth(() => syncScheduleHealth())
+  try {
+    await refreshExactAlarmStatus()
+  } catch {
+    /* non-fatal */
+  }
+  syncScheduleHealth()
+})
+
+onUnmounted(() => {
+  unsubHealth?.()
+  unsubHealth = null
 })
 
 async function onSaveRemind(): Promise<void> {
@@ -656,6 +715,12 @@ async function onOpenOemSettings(): Promise<void> {
     ? '已尝试打开系统「精确闹钟/通知」相关页'
     : '无法自动跳转，请按下方摘要或 docs/android-oem-notifications.md 手动设置'
   if (!opened) oemExpanded.value = true
+  try {
+    await refreshExactAlarmStatus()
+  } catch {
+    /* ignore */
+  }
+  syncScheduleHealth()
 }
 
 async function onExportJson(): Promise<void> {
