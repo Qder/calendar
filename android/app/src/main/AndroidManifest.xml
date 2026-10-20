@@ -37,6 +37,8 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Allow opening system clock to set an alarm (N-sys-alarm) -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- Android 13+ notification runtime permission (Capacitor Local Notifications docs) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 12+ exact alarms for on-time reminders (Capacitor + Android docs) -->

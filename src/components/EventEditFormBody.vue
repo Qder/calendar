@@ -119,6 +119,26 @@
       未启用提醒（保存后不会调度通知）
     </div>
 
+    <v-btn
+      v-if="showSystemAlarm && hasAnyReminder"
+      variant="outlined"
+      color="primary"
+      class="mb-3 touch-row"
+      prepend-icon="mdi-alarm"
+      block
+      :loading="systemAlarmBusy"
+      aria-label="添加到系统闹钟"
+      @click="$emit('add-system-alarm')"
+    >
+      添加到系统闹钟
+    </v-btn>
+    <div
+      v-if="showSystemAlarm && hasAnyReminder"
+      class="text-medium-emphasis text-caption mb-3"
+    >
+      仅打开系统时钟预填时刻与标题，需在时钟里确认；不替代 App 本地通知。多条提醒只同步最近一条。
+    </div>
+
     <v-textarea
       :model-value="note"
       label="备注"
@@ -161,6 +181,9 @@ const props = defineProps<{
   isNew: boolean
   error: string
   recurrenceItems: { title: string; value: string }[]
+  /** Android only — hide on Web/Tauri */
+  showSystemAlarm?: boolean
+  systemAlarmBusy?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -174,6 +197,7 @@ const emit = defineEmits<{
   'update:customEnabled': [boolean]
   'update:customDays': [number]
   'update:remindTime': [string]
+  'add-system-alarm': []
 }>()
 
 const presetOptions = [

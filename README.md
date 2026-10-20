@@ -36,6 +36,7 @@ npm install --save https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
 - OEM 提醒：[`docs/android-oem-notifications.md`](docs/android-oem-notifications.md)
 - Debug / Release（含 keystore 勿入库）：[`docs/android-release.md`](docs/android-release.md)
+- **同步到系统闹钟（N-sys-alarm）**：编辑事项 →「添加到系统闹钟」→ 跳转系统时钟预填时刻+标题，用户确认。与 LocalNotifications **并存**；不静默写入、不跟系列双向同步。仅 Android（Web/桌面隐藏入口）。多条提醒只开最近一条。
 
 ## 脚本
 
